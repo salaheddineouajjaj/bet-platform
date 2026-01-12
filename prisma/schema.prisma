@@ -1,0 +1,416 @@
+// Prisma schema for BET Collaborative Platform
+// Database: PostgreSQL on Supabase
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========================================
+// USER MANAGEMENT & RBAC
+// ========================================
+
+enum UserRole {
+  CHEF_DE_PROJET
+  REFERENT_LOT
+  CONTRIBUTEUR
+  EXTERNE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole
+  lot       String?  // Lot assignment for REFERENT_LOT and CONTRIBUTEUR
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdProjects    Project[]         @relation("ProjectCreator")
+  deliverables       Deliverable[]     @relation("DeliverableCreator")
+  documents          Document[]        @relation("DocumentUploader")
+  remarks            Remark[]          @relation("RemarkCreator")
+  assignedRemarks    Remark[]          @relation("RemarkAssignee")
+  remarkComments     RemarkComment[]
+  meetings           Meeting[]         @relation("MeetingOrganizer")
+  decisions          Decision[]
+  risks              Risk[]            @relation("RiskCreator")
+  assignedRisks      Risk[]            @relation("RiskAssignee")
+  activityLogs       ActivityLog[]
+  actionItems        ActionItem[]
+
+  @@index([email])
+  @@index([role])
+}
+
+// ========================================
+// PROJECT CORE
+// ========================================
+
+enum ProjectPhase {
+  APS
+  APD
+  PRO
+  DCE
+  ACT
+}
+
+model Project {
+  id          String       @id @default(cuid())
+  name        String
+  moa         String       // Maître d'Ouvrage
+  architecte  String
+  adresse     String
+  type        String       // Type de projet
+  enjeux      String       
+  phase       ProjectPhase @default(APS)
+  createdById String
+  createdBy   User         @relation("ProjectCreator", fields: [createdById], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  contacts     ProjectContact[]
+  phases       PhaseDate[]
+  deliverables Deliverable[]
+  documents    Document[]
+  remarks      Remark[]
+  meetings     Meeting[]
+  decisions    Decision[]
+  risks        Risk[]
+  activityLogs ActivityLog[]
+
+  @@index([phase])
+  @@index([createdById])
+}
+
+model ProjectContact {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  role      String
+  email     String
+  phone     String?
+
+  @@index([projectId])
+}
+
+model PhaseDate {
+  id        String       @id @default(cuid())
+  projectId String
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phase     ProjectPhase
+  startDate DateTime
+  endDate   DateTime
+
+  @@unique([projectId, phase])
+  @@index([projectId])
+}
+
+// ========================================
+// ONGLET 2: PLANNING DES LIVRABLES
+// ========================================
+
+enum DeliverableStatus {
+  A_FAIRE
+  EN_COURS
+  DEPOSE
+  A_VALIDER
+  VALIDE
+  REJETE
+}
+
+model Deliverable {
+  id           String             @id @default(cuid())
+  projectId    String
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  lot          String
+  name         String
+  phase        ProjectPhase
+  responsable  String
+  dueDate      DateTime
+  status       DeliverableStatus  @default(A_FAIRE)
+  version      String             @default("1.0")
+  createdById  String
+  createdBy    User               @relation("DeliverableCreator", fields: [createdById], references: [id])
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  // Relations
+  documents    Document[]
+
+  @@index([projectId])
+  @@index([lot])
+  @@index([status])
+  @@index([phase])
+  @@index([dueDate])
+}
+
+// ========================================
+// ONGLET 3: PLANS & DOCUMENTS (GED)
+// ========================================
+
+model Document {
+  id             String       @id @default(cuid())
+  projectId      String
+  project        Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deliverableId  String?
+  deliverable    Deliverable? @relation(fields: [deliverableId], references: [id], onDelete: SetNull)
+  path           String       // 00_Admin, 01_APS, 02_APD, 03_PRO, 04_DCE, 05_ACT
+  lot            String
+  filename       String
+  version        String       @default("1.0")
+  storageUrl     String       // Supabase Storage URL
+  uploadedById   String
+  uploadedBy     User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+  uploadedAt     DateTime     @default(now())
+
+  // Relations
+  versions       DocumentVersion[]
+  remarks        Remark[]
+
+  @@index([projectId])
+  @@index([deliverableId])
+  @@index([path])
+  @@index([lot])
+}
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version    String
+  storageUrl String
+  uploadedAt DateTime @default(now())
+  uploadedBy String
+
+  @@index([documentId])
+}
+
+// ========================================
+// ONGLET 4: REMARQUES & VISA
+// ========================================
+
+enum RemarkPriority {
+  BASSE
+  MOYENNE
+  HAUTE
+  CRITIQUE
+}
+
+enum RemarkStatus {
+  OUVERT
+  EN_COURS
+  RESOLU
+  VALIDE
+  FERME
+}
+
+model Remark {
+  id           String          @id @default(cuid())
+  projectId    String
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentId   String?
+  document     Document?       @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  title        String
+  description  String          
+  priority     RemarkPriority  @default(MOYENNE)
+  status       RemarkStatus    @default(OUVERT)
+  responsableId String
+  responsable  User            @relation("RemarkAssignee", fields: [responsableId], references: [id])
+  deadline     DateTime?
+  createdById  String
+  createdBy    User            @relation("RemarkCreator", fields: [createdById], references: [id])
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  comments     RemarkComment[]
+
+  @@index([projectId])
+  @@index([documentId])
+  @@index([status])
+  @@index([priority])
+  @@index([responsableId])
+}
+
+model RemarkComment {
+  id        String   @id @default(cuid())
+  remarkId  String
+  remark    Remark   @relation(fields: [remarkId], references: [id], onDelete: Cascade)
+  content   String   
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([remarkId])
+  @@index([authorId])
+}
+
+// ========================================
+// ONGLET 5: RÉUNIONS & CR
+// ========================================
+
+model Meeting {
+  id           String              @id @default(cuid())
+  projectId    String
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  date         DateTime
+  participants String               // JSON array of participant names/emails
+  crContent    String               // Compte Rendu content
+  organizerId  String
+  organizer    User                @relation("MeetingOrganizer", fields: [organizerId], references: [id])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  // Relations
+  attachments  MeetingAttachment[]
+  actionItems  ActionItem[]
+
+  @@index([projectId])
+  @@index([date])
+}
+
+model MeetingAttachment {
+  id         String   @id @default(cuid())
+  meetingId  String
+  meeting    Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  filename   String
+  storageUrl String
+  uploadedAt DateTime @default(now())
+
+  @@index([meetingId])
+}
+
+enum ActionItemStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model ActionItem {
+  id          String           @id @default(cuid())
+  meetingId   String
+  meeting     Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  description String           
+  assignedToId String
+  assignedTo  User             @relation(fields: [assignedToId], references: [id])
+  dueDate     DateTime?
+  status      ActionItemStatus @default(TODO)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([meetingId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+// ========================================
+// ONGLET 6: DÉCISIONS & VALIDATIONS
+// ========================================
+
+enum DecisionType {
+  TECHNIQUE
+  MOA_VALIDATION
+  ARCHITECT_VALIDATION
+}
+
+model Decision {
+  id           String       @id @default(cuid())
+  projectId    String
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type         DecisionType
+  title        String
+  description  String       
+  impact       String?      
+  isValidated  Boolean      @default(false)
+  validatedBy  String?
+  validatedAt  DateTime?
+  decidedById  String
+  decidedBy    User         @relation(fields: [decidedById], references: [id])
+  createdAt    DateTime     @default(now()) // Immutable
+
+  @@index([projectId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ========================================
+// ONGLET 7: RISQUES & RETARDS
+// ========================================
+
+enum ImpactType {
+  DELAY
+  COST
+  PENALTY
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATING
+  RESOLVED
+}
+
+model Risk {
+  id             String     @id @default(cuid())
+  projectId      String
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title          String
+  description    String     
+  impactType     ImpactType
+  impactValue    String     // e.g., "2 weeks", "10000 EUR"
+  mitigation     String?    
+  status         RiskStatus @default(OPEN)
+  responsableId  String
+  responsable    User       @relation("RiskAssignee", fields: [responsableId], references: [id])
+  createdById    String
+  createdBy      User       @relation("RiskCreator", fields: [createdById], references: [id])
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([projectId])
+  @@index([impactType])
+  @@index([status])
+  @@index([responsableId])
+}
+
+// ========================================
+// ACTIVITY LOGGING (Global Timeline)
+// ========================================
+
+enum ActivityType {
+  PROJECT_CREATED
+  DELIVERABLE_CREATED
+  DELIVERABLE_STATUS_CHANGED
+  DOCUMENT_UPLOADED
+  REMARK_CREATED
+  REMARK_STATUS_CHANGED
+  MEETING_CREATED
+  DECISION_MADE
+  RISK_CREATED
+  RISK_STATUS_CHANGED
+}
+
+model ActivityLog {
+  id          String       @id @default(cuid())
+  projectId   String
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        ActivityType
+  description String       
+  metadata    String?       // JSON with additional data
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  createdAt   DateTime     @default(now())
+
+  @@index([projectId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
+}

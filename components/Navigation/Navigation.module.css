@@ -1,0 +1,147 @@
+.container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 0 var(--spacing-xl);
+}
+
+.header {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.headerContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-lg) 0;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    text-decoration: none;
+}
+
+.logoIcon {
+    width: 40px;
+    height: 40px;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.logoText {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.userBadge {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-gray-100);
+    border-radius: var(--radius-full);
+}
+
+.userAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.userName {
+    font-weight: 500;
+    font-size: var(--font-size-sm);
+}
+
+/* ONGLET Navigation */
+.ongletNav {
+    background: var(--color-surface);
+    border-bottom: 2px solid var(--color-gray-200);
+    overflow-x: auto;
+}
+
+.ongletNav::-webkit-scrollbar {
+    height: 4px;
+}
+
+.ongletNav::-webkit-scrollbar-thumb {
+    background: var(--color-gray-300);
+    border-radius: var(--radius-sm);
+}
+
+.ongletTabs {
+    display: flex;
+    gap: var(--spacing-sm);
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    min-width: max-content;
+}
+
+.ongletTab {
+    position: relative;
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-gray-500);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all var(--transition-base);
+    border-bottom: 3px solid transparent;
+}
+
+.ongletTab:hover {
+    color: var(--color-primary);
+    background: var(--color-gray-50);
+}
+
+.ongletTabActive {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
+
+.ongletNumber {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background: var(--color-gray-200);
+    border-radius: var(--radius-full);
+    text-align: center;
+    line-height: 24px;
+    font-size: 0.75rem;
+    margin-right: var(--spacing-sm);
+    transition: all var(--transition-base);
+}
+
+.ongletTabActive .ongletNumber {
+    background: var(--color-primary);
+    color: white;
+}
