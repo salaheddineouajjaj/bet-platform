@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
 import KanbanBoard from '@/components/KanbanBoard/KanbanBoard';
+import NewDeliverableModal from '@/components/NewDeliverableModal/NewDeliverableModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function DeliverablesPage({ params }) {
@@ -12,6 +14,7 @@ export default function DeliverablesPage({ params }) {
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('kanban'); // 'kanban' or 'table'
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchDeliverables();
@@ -155,9 +158,14 @@ export default function DeliverablesPage({ params }) {
                                     📑 Tableau
                                 </button>
                             </div>
-                            <button className="btn btn-primary">
-                                ➕ Nouveau Livrable
-                            </button>
+                            {hasPermission(user?.role, 'CREATE_DELIVERABLE') && (
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => setShowNewModal(true)}
+                                >
+                                    ➕ Nouveau Livrable
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -189,7 +197,7 @@ export default function DeliverablesPage({ params }) {
                                         <tr key={del.id}>
                                             <td>
                                                 <span className={`badge badge-${del.lot === 'Structure' ? 'purple' :
-                                                        del.lot === 'CVC' ? 'blue' : 'orange'
+                                                    del.lot === 'CVC' ? 'blue' : 'orange'
                                                     }`}>
                                                     {del.lot}
                                                 </span>
@@ -207,8 +215,8 @@ export default function DeliverablesPage({ params }) {
                                             </td>
                                             <td>
                                                 <span className={`badge badge-${del.status === 'VALIDE' ? 'green' :
-                                                        del.status === 'EN_COURS' ? 'blue' :
-                                                            del.status === 'A_VALIDER' ? 'orange' : 'gray'
+                                                    del.status === 'EN_COURS' ? 'blue' :
+                                                        del.status === 'A_VALIDER' ? 'orange' : 'gray'
                                                     }`}>
                                                     {del.status.replace('_', ' ')}
                                                 </span>
@@ -222,6 +230,16 @@ export default function DeliverablesPage({ params }) {
                     )}
                 </div>
             </div>
+
+            {/* New Deliverable Modal */}
+            <NewDeliverableModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                projectId={id}
+                onSuccess={(newDeliverable) => {
+                    setDeliverables([...deliverables, newDeliverable]);
+                }}
+            />
         </div>
     );
 }
