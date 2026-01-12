@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
+import NewRemarkModal from '@/components/NewRemarkModal/NewRemarkModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function RemarksPage({ params }) {
@@ -11,6 +13,7 @@ export default function RemarksPage({ params }) {
     const [selectedRemark, setSelectedRemark] = useState(null);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchRemarks();
@@ -71,9 +74,14 @@ export default function RemarksPage({ params }) {
                 <div className={styles.pageContent}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>
                         <h1>💬 Remarques & Visa</h1>
-                        <button className="btn btn-primary">
-                            ➕ Nouvelle Remarque
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_REMARK') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Nouvelle Remarque
+                            </button>
+                        )}
                     </div>
 
                     <div className={styles.grid}>
@@ -181,6 +189,17 @@ export default function RemarksPage({ params }) {
                     </div>
                 </div>
             </div>
+
+            {/* New Remark Modal */}
+            <NewRemarkModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                projectId={id}
+                onSuccess={(newRemark) => {
+                    setRemarks([newRemark, ...remarks]);
+                    setSelectedRemark(newRemark);
+                }}
+            />
         </div>
     );
 }
