@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
+import NewRiskModal from '@/components/NewRiskModal/NewRiskModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function RisksPage({ params }) {
@@ -10,6 +12,7 @@ export default function RisksPage({ params }) {
     const [risks, setRisks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchRisks();
@@ -85,9 +88,14 @@ export default function RisksPage({ params }) {
                                 {risks.filter(r => r.status !== 'RESOLVED').length} risques actifs sur {risks.length} total
                             </p>
                         </div>
-                        <button className="btn btn-primary">
-                            ➕ Identifier un Risque
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_RISK') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Identifier un Risque
+                            </button>
+                        )}
                     </div>
 
                     {loading ? (
@@ -156,6 +164,16 @@ export default function RisksPage({ params }) {
                     )}
                 </div>
             </div>
+
+            {/* New Risk Modal */}
+            <NewRiskModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                projectId={id}
+                onSuccess={(newRisk) => {
+                    setRisks([newRisk, ...risks]);
+                }}
+            />
         </div>
     );
 }
