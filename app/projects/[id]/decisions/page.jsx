@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
+import NewDecisionModal from '@/components/NewDecisionModal/NewDecisionModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function DecisionsPage({ params }) {
@@ -10,6 +12,7 @@ export default function DecisionsPage({ params }) {
     const [decisions, setDecisions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchDecisions();
@@ -82,9 +85,14 @@ export default function DecisionsPage({ params }) {
                                 Journal audit immutable • {decisions.length} décisions enregistrées
                             </p>
                         </div>
-                        <button className="btn btn-primary">
-                            ➕ Nouvelle Décision
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_DECISION') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Nouvelle Décision
+                            </button>
+                        )}
                     </div>
 
                     {loading ? (
@@ -142,6 +150,15 @@ export default function DecisionsPage({ params }) {
                     )}
                 </div>
             </div>
+
+            <NewDecisionModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                projectId={id}
+                onSuccess={(newDecision) => {
+                    setDecisions([newDecision, ...decisions]);
+                }}
+            />
         </div>
     );
 }

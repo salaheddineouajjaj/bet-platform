@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
+import NewMeetingModal from '@/components/NewMeetingModal/NewMeetingModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function MeetingsPage({ params }) {
@@ -10,6 +12,7 @@ export default function MeetingsPage({ params }) {
     const [meetings, setMeetings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchMeetings();
@@ -48,9 +51,14 @@ export default function MeetingsPage({ params }) {
                 <div className={styles.pageContent}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>
                         <h1>📅 Réunions & Comptes Rendus</h1>
-                        <button className="btn btn-primary">
-                            ➕ Nouvelle Réunion
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_MEETING') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Nouvelle Réunion
+                            </button>
+                        )}
                     </div>
 
                     {loading ? (
@@ -104,7 +112,7 @@ export default function MeetingsPage({ params }) {
                                                     <td>{new Date(action.dueDate).toLocaleDateString('fr-FR')}</td>
                                                     <td>
                                                         <span className={`badge badge-${action.status === 'DONE' ? 'green' :
-                                                                action.status === 'IN_PROGRESS' ? 'blue' : 'gray'
+                                                            action.status === 'IN_PROGRESS' ? 'blue' : 'gray'
                                                             }`}>
                                                             {action.status === 'DONE' ? 'Terminé' :
                                                                 action.status === 'IN_PROGRESS' ? 'En cours' : 'À faire'}
@@ -120,6 +128,15 @@ export default function MeetingsPage({ params }) {
                     )}
                 </div>
             </div>
+
+            <NewMeetingModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                projectId={id}
+                onSuccess={(newMeeting) => {
+                    setMeetings([newMeeting, ...meetings]);
+                }}
+            />
         </div>
     );
 }
