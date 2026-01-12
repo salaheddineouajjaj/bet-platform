@@ -62,7 +62,13 @@ export default function Navigation({ projectId, user }) {
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="btn btn-ghost btn-sm">
+                                    <button
+                                        className="btn btn-ghost btn-sm"
+                                        onClick={() => {
+                                            localStorage.removeItem('userEmail');
+                                            window.location.href = '/auth/login';
+                                        }}
+                                    >
                                         Déconnexion
                                     </button>
                                 </>
