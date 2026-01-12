@@ -32,35 +32,41 @@ export default function UploadDocumentModal({ isOpen, onClose, projectId, onSucc
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
+
+        if (!formData.file) {
+            setError('Veuillez sélectionner un fichier');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
-        try {
-            // Mock file upload
-            await new Promise(resolve => setTimeout(resolve, 1000));
+        // Read file as base64
+        const reader = new FileReader();
 
+        reader.onload = () => {
             const newDocument = {
                 id: Date.now().toString(),
                 title: formData.title,
+                filename: formData.file.name,
                 folder: formData.folder,
                 lot: formData.lot,
                 description: formData.description,
-                fileName: formData.file?.name || 'document.pdf',
-                fileSize: formData.file?.size || 1024000,
-                mimeType: formData.file?.type || 'application/pdf',
+                fileSize: formData.file.size,
+                mimeType: formData.file.type,
                 version: '1.0',
                 uploadedBy: { name: 'Marie Dupont' },
                 uploadedAt: new Date().toISOString(),
-                // Mock file URL - in production this would be from Supabase Storage
-                fileUrl: URL.createObjectURL(formData.file),
+                fileData: reader.result, // Base64 file data
             };
 
             if (onSuccess) {
                 onSuccess(newDocument);
             }
 
+            // Reset form
             setFormData({
                 title: '',
                 folder: '00_Admin',
@@ -69,13 +75,17 @@ export default function UploadDocumentModal({ isOpen, onClose, projectId, onSucc
                 file: null,
             });
 
-            onClose();
-        } catch (err) {
-            setError('Erreur lors du téléchargement du fichier');
-            console.error(err);
-        } finally {
             setLoading(false);
-        }
+            onClose();
+        };
+
+        reader.onerror = () => {
+            setError('Erreur lors de la lecture du fichier');
+            setLoading(false);
+        };
+
+        // Read as base64
+        reader.readAsDataURL(formData.file);
     };
 
     return (
