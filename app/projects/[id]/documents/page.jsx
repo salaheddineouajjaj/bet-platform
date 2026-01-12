@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import Navigation from '@/components/Navigation/Navigation';
+import UploadDocumentModal from '@/components/UploadDocumentModal/UploadDocumentModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 const FOLDER_STRUCTURE = [
@@ -20,6 +22,7 @@ export default function DocumentsPage({ params }) {
     const [selectedFolder, setSelectedFolder] = useState('00_Admin');
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showUploadModal, setShowUploadModal] = useState(false);
 
     useEffect(() => {
         fetchDocuments();
@@ -66,6 +69,21 @@ export default function DocumentsPage({ params }) {
         }, 300);
     };
 
+    const handleViewDocument = (doc) => {
+        // Open in new tab (placeholder - would use real file URL in production)
+        alert(`📄 Ouverture de: ${doc.filename}\n\n⚠️ Feature en développement\n\nEn production, ce fichier s'ouvrira dans un nouvel onglet via Supabase Storage.`);
+        // window.open(doc.fileUrl, '_blank');
+    };
+
+    const handleDownloadDocument = (doc) => {
+        // Download file (placeholder)
+        alert(`⬇️ Téléchargement de: ${doc.filename}\n\n⚠️ Feature en développement\n\nEn production, le fichier sera téléchargé depuis Supabase Storage.`);
+        // const link = document.createElement('a');
+        // link.href = doc.fileUrl;
+        // link.download = doc.filename;
+        // link.click();
+    };
+
     return (
         <div className={styles.page}>
             <Navigation projectId={id} user={user} />
@@ -74,9 +92,14 @@ export default function DocumentsPage({ params }) {
                 <div className={styles.pageContent}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--spacing-xl)' }}>
                         <h1>📁 Plans & Documents (GED)</h1>
-                        <button className="btn btn-primary">
-                            ⬆️ Télécharger un document
-                        </button>
+                        {hasPermission(user?.role, 'UPLOAD_DOCUMENT') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowUploadModal(true)}
+                            >
+                                ⬆️ Télécharger un document
+                            </button>
+                        )}
                     </div>
 
                     <div className={styles.grid}>
@@ -135,7 +158,7 @@ export default function DocumentsPage({ params }) {
                                                 </td>
                                                 <td>
                                                     <span className={`badge badge-${doc.lot === 'Structure' ? 'purple' :
-                                                            doc.lot === 'CVC' ? 'blue' : 'gray'
+                                                        doc.lot === 'CVC' ? 'blue' : 'gray'
                                                         }`}>
                                                         {doc.lot}
                                                     </span>
@@ -145,8 +168,18 @@ export default function DocumentsPage({ params }) {
                                                 <td>{new Date(doc.uploadedAt).toLocaleDateString('fr-FR')}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: 'var(--spacing-sm)' }}>
-                                                        <button className="btn btn-sm btn-ghost">👁️ Voir</button>
-                                                        <button className="btn btn-sm btn-ghost">⬇️ Télécharger</button>
+                                                        <button
+                                                            className="btn btn-sm btn-ghost"
+                                                            onClick={() => handleViewDocument(doc)}
+                                                        >
+                                                            👁️ Voir
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-ghost"
+                                                            onClick={() => handleDownloadDocument(doc)}
+                                                        >
+                                                            ⬇️ Télécharger
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -158,6 +191,18 @@ export default function DocumentsPage({ params }) {
                     </div>
                 </div>
             </div>
+
+            <UploadDocumentModal
+                isOpen={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                projectId={id}
+                onSuccess={(newDoc) => {
+                    // Add to current folder's documents
+                    if (newDoc.folder === selectedFolder) {
+                        setDocuments([...documents, newDoc]);
+                    }
+                }}
+            />
         </div>
     );
 }
