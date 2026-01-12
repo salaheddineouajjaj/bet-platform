@@ -3,12 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation/Navigation';
+import NewProjectModal from '@/components/NewProjectModal/NewProjectModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from './projects.module.css';
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState(null);
+    const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
         fetchProjects();
@@ -70,9 +73,14 @@ export default function ProjectsPage() {
                 <div className="container">
                     <div className={styles.headerContent}>
                         <h1 className={styles.pageTitle}>Mes Projets</h1>
-                        <button className="btn btn-primary">
-                            ➕ Nouveau Projet
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_PROJECT') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Nouveau Projet
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -144,6 +152,14 @@ export default function ProjectsPage() {
                     </div>
                 )}
             </div>
+
+            <NewProjectModal
+                isOpen={showNewModal}
+                onClose={() => setShowNewModal(false)}
+                onSuccess={(newProject) => {
+                    setProjects([...projects, newProject]);
+                }}
+            />
         </div>
     );
 }
