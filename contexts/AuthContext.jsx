@@ -1,8 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, getCurrentUser } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { useRouter, usePathname } from 'next/navigation';
 
 const AuthContext = createContext({});
 
@@ -10,25 +10,26 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const pathname = usePathname();
 
     useEffect(() => {
-        // Check active sessions
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                loadUser();
-            } else {
-                setLoading(false);
-            }
-        });
+        // Check active session
+        checkSession();
 
         // Listen for auth changes
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session) {
-                await loadUser();
+            console.log('Auth event:', event, session?.user?.email);
+
+            if (session?.user) {
+                await loadUserData(session.user);
             } else {
                 setUser(null);
+                // Only redirect to login if not already there
+                if (!pathname?.startsWith('/auth/login')) {
+                    router.push('/auth/login');
+                }
             }
             setLoading(false);
         });
@@ -36,15 +37,47 @@ export function AuthProvider({ children }) {
         return () => subscription.unsubscribe();
     }, []);
 
-    async function loadUser() {
+    async function checkSession() {
         try {
-            const userData = await getCurrentUser();
-            setUser(userData);
+            const { data: { session }, error } = await supabase.auth.getSession();
+
+            if (error) throw error;
+
+            if (session?.user) {
+                await loadUserData(session.user);
+            } else {
+                setUser(null);
+            }
         } catch (error) {
-            console.error('Error loading user:', error);
+            console.error('Session error:', error);
             setUser(null);
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function loadUserData(authUser) {
+        try {
+            // Get user from database
+            const { data, error } = await supabase
+                .from('User')
+                .select('*')
+                .eq('email', authUser.email)
+                .single();
+
+            if (error) {
+                console.error('Error loading user data:', error);
+                // If user doesn't exist in DB, sign out
+                await supabase.auth.signOut();
+                setUser(null);
+                return;
+            }
+
+            setUser(data);
+            console.log('User loaded:', data.email, data.role);
+        } catch (error) {
+            console.error('Error in loadUserData:', error);
+            setUser(null);
         }
     }
 
@@ -52,13 +85,20 @@ export function AuthProvider({ children }) {
         user,
         loading,
         signIn: async (email, password) => {
-            const { data, error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
-            if (error) throw error;
-            await loadUser();
-            return data;
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password,
+                });
+
+                if (error) throw error;
+
+                await loadUserData(data.user);
+                return data;
+            } catch (error) {
+                console.error('Sign in error:', error);
+                throw error;
+            }
         },
         signOut: async () => {
             await supabase.auth.signOut();
