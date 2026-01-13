@@ -183,59 +183,80 @@ export default function ProjectOverviewPage({ params }) {
                                     <h2 className={styles.sectionTitle}>📅 Dates Clés</h2>
                                 </div>
                                 <div className={styles.datesList}>
-                                    {project.phases.map((phase) => (
-                                        <div key={phase.phase} className={styles.dateItem}>
-                                            <div className={styles.datePhase}>{getPhaseLabel(phase.phase)}</div>
+                                    {project.startDate ? (
+                                        <div className={styles.dateItem}>
+                                            <div className={styles.datePhase}>Début du Projet</div>
                                             <div className={styles.datePeriod}>
-                                                {new Date(phase.startDate).toLocaleDateString('fr-FR')} - {new Date(phase.endDate).toLocaleDateString('fr-FR')}
+                                                {new Date(project.startDate).toLocaleDateString('fr-FR')}
                                             </div>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        <div className={styles.dateItem}><span style={{ color: 'gray', fontStyle: 'italic' }}>Date de début non définie</span></div>
+                                    )}
+
+                                    {project.endDate && (
+                                        <div className={styles.dateItem}>
+                                            <div className={styles.datePhase}>Fin Estimée</div>
+                                            <div className={styles.datePeriod}>
+                                                {new Date(project.endDate).toLocaleDateString('fr-FR')}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {project.startDate && project.endDate && (
+                                        <div className={styles.dateItem}>
+                                            <div className={styles.datePhase}>Durée</div>
+                                            <div className={styles.datePeriod}>
+                                                {Math.ceil((new Date(project.endDate) - new Date(project.startDate)) / (1000 * 60 * 60 * 24))} jours
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Latest Decisions */}
-                            <div className={styles.section} style={{ marginTop: 'var(--spacing-xl)' }}>
-                                <div className={styles.sectionHeader}>
-                                    <h2 className={styles.sectionTitle}>✅ Dernières Décisions</h2>
-                                    <a href={`/projects/${id}/decisions`} className="btn btn-sm btn-ghost">Voir tout</a>
+                        {/* Latest Decisions */}
+                        <div className={styles.section} style={{ marginTop: 'var(--spacing-xl)' }}>
+                            <div className={styles.sectionHeader}>
+                                <h2 className={styles.sectionTitle}>✅ Dernières Décisions</h2>
+                                <a href={`/projects/${id}/decisions`} className="btn btn-sm btn-ghost">Voir tout</a>
+                            </div>
+                            <div className={styles.decisionsList}>
+                                <div className={styles.decisionCard}>
+                                    <div className={styles.decisionTitle}>Choix système de fondations</div>
+                                    <div className={styles.decisionMeta}>10/04/2024 • Technique</div>
                                 </div>
-                                <div className={styles.decisionsList}>
-                                    <div className={styles.decisionCard}>
-                                        <div className={styles.decisionTitle}>Choix système de fondations</div>
-                                        <div className={styles.decisionMeta}>10/04/2024 • Technique</div>
-                                    </div>
-                                    <div className={styles.decisionCard}>
-                                        <div className={styles.decisionTitle}>Validation note de calcul APD</div>
-                                        <div className={styles.decisionMeta}>16/05/2024 • MOA</div>
-                                    </div>
+                                <div className={styles.decisionCard}>
+                                    <div className={styles.decisionTitle}>Validation note de calcul APD</div>
+                                    <div className={styles.decisionMeta}>16/05/2024 • MOA</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    {/* Visual Timeline */}
-                    <div className={styles.section}>
-                        <div className={styles.sectionHeader}>
-                            <h2 className={styles.sectionTitle}>📊 Timeline du Projet</h2>
+                {/* Visual Timeline */}
+                <div className={styles.section}>
+                    <div className={styles.sectionHeader}>
+                        <h2 className={styles.sectionTitle}>📊 Timeline du Projet</h2>
+                    </div>
+                    <div className={styles.timeline}>
+                        <div className={`${styles.timelineItem} ${styles.timelineItemComplete}`}>
+                            <div className={styles.timelineTitle}>APS - Avant-Projet Sommaire</div>
+                            <div className={styles.timelineDate}>01/01/2024 - 31/03/2024 • ✅ Terminé</div>
                         </div>
-                        <div className={styles.timeline}>
-                            <div className={`${styles.timelineItem} ${styles.timelineItemComplete}`}>
-                                <div className={styles.timelineTitle}>APS - Avant-Projet Sommaire</div>
-                                <div className={styles.timelineDate}>01/01/2024 - 31/03/2024 • ✅ Terminé</div>
-                            </div>
-                            <div className={`${styles.timelineItem} ${styles.timelineItemActive}`}>
-                                <div className={styles.timelineTitle}>APD - Avant-Projet Définitif</div>
-                                <div className={styles.timelineDate}>01/04/2024 - 30/06/2024 • 🔵 En cours</div>
-                            </div>
-                            <div className={styles.timelineItem}>
-                                <div className={styles.timelineTitle}>PRO - Projet</div>
-                                <div className={styles.timelineDate}>01/07/2024 - 31/10/2024 • ⏳ À venir</div>
-                            </div>
+                        <div className={`${styles.timelineItem} ${styles.timelineItemActive}`}>
+                            <div className={styles.timelineTitle}>APD - Avant-Projet Définitif</div>
+                            <div className={styles.timelineDate}>01/04/2024 - 30/06/2024 • 🔵 En cours</div>
+                        </div>
+                        <div className={styles.timelineItem}>
+                            <div className={styles.timelineTitle}>PRO - Projet</div>
+                            <div className={styles.timelineDate}>01/07/2024 - 31/10/2024 • ⏳ À venir</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </div >
     );
 }

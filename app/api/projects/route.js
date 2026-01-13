@@ -76,9 +76,11 @@ export async function POST(request) {
                 name: body.name,
                 moa: body.moa,
                 architecte: body.architecte,
-                adresse: body.adresse,
                 type: body.type,
-                phase: body.phase || 'APS',
+                enjeux: body.enjeux || null,
+                phase: body.phase,
+                startDate: body.startDate ? new Date(body.startDate) : null,
+                endDate: body.endDate ? new Date(body.endDate) : null,
                 createdById: user.id,
             },
             include: {

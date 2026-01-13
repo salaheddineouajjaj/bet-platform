@@ -11,6 +11,9 @@ export default function NewProjectModal({ isOpen, onClose, onSuccess }) {
         adresse: '',
         type: 'RESIDENTIEL',
         phase: 'APS',
+        enjeux: '',
+        startDate: '',
+        endDate: '',
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -101,6 +104,38 @@ export default function NewProjectModal({ isOpen, onClose, onSuccess }) {
                             <select value={formData.phase} onChange={(e) => setFormData({ ...formData, phase: e.target.value })} required style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '1rem' }}>
                                 {phases.map(phase => <option key={phase} value={phase}>{phase}</option>)}
                             </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Enjeux</label>
+                        <textarea
+                            value={formData.enjeux}
+                            onChange={(e) => setFormData({ ...formData, enjeux: e.target.value })}
+                            placeholder="Enjeux principaux du projet..."
+                            rows={3}
+                            style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '1rem', fontFamily: 'inherit' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Date de début</label>
+                            <input
+                                type="date"
+                                value={formData.startDate}
+                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '1rem' }}
+                            />
+                        </div>
+                        <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Date de fin (estimée)</label>
+                            <input
+                                type="date"
+                                value={formData.endDate}
+                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                style={{ width: '100%', padding: '0.75rem', border: '2px solid var(--color-border)', borderRadius: 'var(--radius-md)', fontSize: '1rem' }}
+                            />
                         </div>
                     </div>
 
