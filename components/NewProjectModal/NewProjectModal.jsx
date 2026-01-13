@@ -24,18 +24,27 @@ export default function NewProjectModal({ isOpen, onClose, onSuccess }) {
         setError('');
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // REAL API CALL to database
+            const response = await fetch('/api/projects', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-            const newProject = {
-                id: Date.now().toString(),
-                ...formData,
-                _count: { deliverables: 0, documents: 0, remarks: 0 },
-            };
+            const data = await response.json();
 
-            if (onSuccess) {
-                onSuccess(newProject);
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de la création du projet');
             }
 
+            // Success!
+            if (onSuccess) {
+                onSuccess(data.project);
+            }
+
+            // Reset form
             setFormData({
                 name: '',
                 moa: '',
@@ -47,7 +56,8 @@ export default function NewProjectModal({ isOpen, onClose, onSuccess }) {
 
             onClose();
         } catch (err) {
-            setError('Erreur lors de la création du projet');
+            console.error('Create project error:', err);
+            setError(err.message || 'Erreur lors de la création du projet');
         } finally {
             setLoading(false);
         }
