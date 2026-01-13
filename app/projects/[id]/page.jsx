@@ -22,31 +22,26 @@ export default function ProjectOverviewPage({ params }) {
     const fetchProject = async () => {
         try {
             setLoading(true);
-            // Mock data for now
-            setTimeout(() => {
-                setProject({
-                    id: '1',
-                    name: 'Construction Complexe Résidentiel Les Jardins',
-                    moa: 'Ville de Paris - Direction de l\'Urbanisme',
-                    architecte: 'Cabinet Architectes Associés',
-                    adresse: '45 Avenue de la République, 75011 Paris',
-                    type: 'Résidentiel - Logements collectifs',
-                    enjeux: 'Construction de 120 logements sociaux avec performance énergétique RT2012',
-                    phase: 'APD',
-                    contacts: [
-                        { name: 'Marie Dupont', role: 'Chef de Projet BET', email: 'marie.dupont@bet.fr', phone: '01 23 45 67 89' },
-                        { name: 'Jean Architecte', role: 'Architecte MOA', email: 'jean@architecte.fr', phone: '01 98 76 54 32' },
-                    ],
-                    phases: [
-                        { phase: 'APS', startDate: '2024-01-01', endDate: '2024-03-31' },
-                        { phase: 'APD', startDate: '2024-04-01', endDate: '2024-06-30' },
-                        { phase: 'PRO', startDate: '2024-07-01', endDate: '2024-10-31' },
-                    ],
-                });
-                setLoading(false);
-            }, 500);
+
+            // REAL API CALL
+            const response = await fetch(`/api/projects/${id}`);
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur de chargement');
+            }
+
+            // Set the REAL project data
+            setProject({
+                ...data.project,
+                contacts: [],  // Empty for now
+                phases: [],    // Empty for now
+            });
+
+            setLoading(false);
         } catch (error) {
             console.error('Error:', error);
+            setProject(null);
             setLoading(false);
         }
     };
