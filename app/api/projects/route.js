@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth, requirePermission, canAccessLot } from '@/lib/auth';
-import { createProjectSchema } from '@/lib/validation';
+import { requireAuth, requirePermission } from '@/lib/auth';
 
 // GET /api/projects - List all projects
 export async function GET(request) {
@@ -61,13 +60,25 @@ export async function POST(request) {
         const user = await requirePermission(request, 'CREATE_PROJECT');
         const body = await request.json();
 
-        // Validate input
-        const validated = createProjectSchema.parse(body);
+        console.log('Creating project with data:', body);
+
+        // Simple validation - just check required fields
+        if (!body.name || !body.moa || !body.architecte || !body.adresse || !body.type) {
+            return NextResponse.json(
+                { error: 'Champs requis manquants' },
+                { status: 400 }
+            );
+        }
 
         // Create project
         const project = await prisma.project.create({
             data: {
-                ...validated,
+                name: body.name,
+                moa: body.moa,
+                architecte: body.architecte,
+                adresse: body.adresse,
+                type: body.type,
+                phase: body.phase || 'APS',
                 createdById: user.id,
             },
             include: {
@@ -80,15 +91,21 @@ export async function POST(request) {
             },
         });
 
+        console.log('Project created:', project.id);
+
         // Log activity
-        await prisma.activityLog.create({
-            data: {
-                projectId: project.id,
-                type: 'PROJECT_CREATED',
-                description: `Projet "${project.name}" créé`,
-                userId: user.id,
-            },
-        });
+        try {
+            await prisma.activityLog.create({
+                data: {
+                    projectId: project.id,
+                    type: 'PROJECT_CREATED',
+                    description: `Projet "${project.name}" créé`,
+                    userId: user.id,
+                },
+            });
+        } catch (logError) {
+            console.error('Activity log error (non-fatal):', logError);
+        }
 
         return NextResponse.json({ project }, { status: 201 });
 
@@ -96,7 +113,7 @@ export async function POST(request) {
         console.error('Create project error:', error);
         return NextResponse.json(
             { error: error.message || 'Erreur lors de la création du projet' },
-            { status: error.message === 'Forbidden: Insufficient permissions' ? 403 : 500 }
+            { status: 500 }
         );
     }
 }
