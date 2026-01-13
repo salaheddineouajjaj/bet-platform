@@ -1,54 +1,40 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth';
-import { createRemarkSchema } from '@/lib/validation';
+import { requireAuth, requirePermission } from '@/lib/auth';
 
-// GET /api/remarks - List remarks
+// GET /api/remarks?projectId=xxx
 export async function GET(request) {
     try {
         const user = await requireAuth(request);
         const { searchParams } = new URL(request.url);
-
         const projectId = searchParams.get('projectId');
-        const status = searchParams.get('status');
-        const priority = searchParams.get('priority');
-        const responsableId = searchParams.get('responsableId');
 
-        let whereClause = {};
-
-        if (projectId) whereClause.projectId = projectId;
-        if (status) whereClause.status = status;
-        if (priority) whereClause.priority = priority;
-        if (responsableId) whereClause.responsableId = responsableId;
+        if (!projectId) {
+            return NextResponse.json(
+                { error: 'projectId requis' },
+                { status: 400 }
+            );
+        }
 
         const remarks = await prisma.remark.findMany({
-            where: whereClause,
+            where: { projectId },
             include: {
                 createdBy: {
-                    select: {
-                        name: true,
-                    },
+                    select: { name: true, email: true },
                 },
                 responsable: {
-                    select: {
-                        name: true,
-                    },
+                    select: { name: true, email: true },
                 },
-                document: {
-                    select: {
-                        filename: true,
+                comments: {
+                    include: {
+                        author: {
+                            select: { name: true, email: true },
+                        },
                     },
-                },
-                _count: {
-                    select: {
-                        comments: true,
-                    },
+                    orderBy: { createdAt: 'asc' },
                 },
             },
-            orderBy: [
-                { priority: 'desc' },
-                { deadline: 'asc' },
-            ],
+            orderBy: { createdAt: 'desc' },
         });
 
         return NextResponse.json({ remarks });
@@ -56,43 +42,38 @@ export async function GET(request) {
     } catch (error) {
         console.error('Get remarks error:', error);
         return NextResponse.json(
-            { error: error.message || 'Erreur lors de la récupération des remarques' },
+            { error: error.message || 'Erreur lors de la récupération' },
             { status: 500 }
         );
     }
 }
 
-// POST /api/remarks - Create remark
+// POST /api/remarks - Create new remark
 export async function POST(request) {
     try {
-        const user = await requireAuth(request);
+        const user = await requirePermission(request, 'CREATE_REMARK');
         const body = await request.json();
 
-        // Validate input
-        const validated = createRemarkSchema.parse(body);
+        console.log('Creating remark with data:', body);
 
-        // Create remark
         const remark = await prisma.remark.create({
             data: {
-                ...validated,
+                projectId: body.projectId,
+                title: body.title,
+                description: body.description,
+                priority: body.priority || 'MOYENNE',
+                status: 'OUVERT',
+                responsableId: user.id,
                 createdById: user.id,
+                deadline: body.deadline ? new Date(body.deadline) : null,
             },
             include: {
-                responsable: {
-                    select: {
-                        name: true,
-                    },
+                createdBy: {
+                    select: { name: true, email: true },
                 },
-            },
-        });
-
-        // Log activity
-        await prisma.activityLog.create({
-            data: {
-                projectId: validated.projectId,
-                type: 'REMARK_CREATED',
-                description: `Remarque "${remark.title}" ouverte (${remark.priority})`,
-                userId: user.id,
+                responsable: {
+                    select: { name: true, email: true },
+                },
             },
         });
 
@@ -101,7 +82,7 @@ export async function POST(request) {
     } catch (error) {
         console.error('Create remark error:', error);
         return NextResponse.json(
-            { error: error.message || 'Erreur lors de la création de la remarque' },
+            { error: error.message || 'Erreur lors de la création' },
             { status: 500 }
         );
     }
