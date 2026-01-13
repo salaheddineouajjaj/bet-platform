@@ -23,27 +23,22 @@ export default function NewDeliverableModal({ isOpen, onClose, projectId, onSucc
         setError('');
 
         try {
-            // TODO: Replace with real API call
-            // const res = await fetch('/api/deliverables', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify({ ...formData, projectId }),
-            // });
+            // REAL API CALL
+            const response = await fetch('/api/deliverables', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, projectId }),
+            });
 
-            // Mock success - simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
+            const data = await response.json();
 
-            // Create mock deliverable
-            const newDeliverable = {
-                id: Date.now().toString(),
-                ...formData,
-                status: 'A_FAIRE',
-                version: '1.0',
-            };
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de la création');
+            }
 
             // Call success callback
             if (onSuccess) {
-                onSuccess(newDeliverable);
+                onSuccess(data.deliverable);
             }
 
             // Reset form
@@ -57,7 +52,7 @@ export default function NewDeliverableModal({ isOpen, onClose, projectId, onSucc
 
             onClose();
         } catch (err) {
-            setError('Erreur lors de la création du livrable');
+            setError(err.message || 'Erreur lors de la création du livrable');
             console.error(err);
         } finally {
             setLoading(false);

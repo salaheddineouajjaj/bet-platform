@@ -1,59 +1,28 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth, canAccessLot } from '@/lib/auth';
-import { createDeliverableSchema } from '@/lib/validation';
+import { requireAuth, requirePermission } from '@/lib/auth';
 
-// GET /api/deliverables - List deliverables
+// GET /api/deliverables?projectId=xxx
 export async function GET(request) {
     try {
         const user = await requireAuth(request);
         const { searchParams } = new URL(request.url);
-
         const projectId = searchParams.get('projectId');
-        const lot = searchParams.get('lot');
-        const phase = searchParams.get('phase');
-        const status = searchParams.get('status');
 
-        // Build where clause
-        let whereClause = {};
-
-        if (projectId) {
-            whereClause.projectId = projectId;
-        }
-
-        if (lot) {
-            whereClause.lot = lot;
-        }
-
-        if (phase) {
-            whereClause.phase = phase;
-        }
-
-        if (status) {
-            whereClause.status = status;
-        }
-
-        // Filter by user lot if not admin
-        if (user.role === 'REFERENT_LOT' || user.role === 'CONTRIBUTEUR') {
-            whereClause.lot = user.lot;
+        if (!projectId) {
+            return NextResponse.json(
+                { error: 'projectId requis' },
+                { status: 400 }
+            );
         }
 
         const deliverables = await prisma.deliverable.findMany({
-            where: whereClause,
+            where: { projectId },
             include: {
-                project: {
-                    select: {
-                        name: true,
-                    },
-                },
                 createdBy: {
                     select: {
                         name: true,
-                    },
-                },
-                _count: {
-                    select: {
-                        documents: true,
+                        email: true,
                     },
                 },
             },
@@ -67,60 +36,96 @@ export async function GET(request) {
     } catch (error) {
         console.error('Get deliverables error:', error);
         return NextResponse.json(
-            { error: error.message || 'Erreur lors de la récupération des livrables' },
+            { error: error.message || 'Erreur lors de la récupération' },
             { status: 500 }
         );
     }
 }
 
-// POST /api/deliverables - Create deliverable
+// POST /api/deliverables - Create new deliverable
 export async function POST(request) {
     try {
-        const user = await requireAuth(request);
+        const user = await requirePermission(request, 'CREATE_DELIVERABLE');
         const body = await request.json();
 
-        // Validate input
-        const validated = createDeliverableSchema.parse(body);
+        console.log('Creating deliverable with data:', body);
 
-        // Check lot access
-        if (!canAccessLot(user, validated.lot)) {
+        // Simple validation
+        if (!body.projectId || !body.name || !body.lot || !body.phase || !body.responsable || !body.dueDate) {
             return NextResponse.json(
-                { error: 'Accès non autorisé à ce lot' },
-                { status: 403 }
+                { error: 'Champs requis manquants' },
+                { status: 400 }
             );
         }
 
         // Create deliverable
         const deliverable = await prisma.deliverable.create({
             data: {
-                ...validated,
+                projectId: body.projectId,
+                lot: body.lot,
+                name: body.name,
+                phase: body.phase,
+                responsable: body.responsable,
+                dueDate: new Date(body.dueDate),
+                status: body.status || 'A_FAIRE',
                 createdById: user.id,
             },
             include: {
-                project: {
+                createdBy: {
                     select: {
                         name: true,
+                        email: true,
                     },
                 },
             },
         });
 
-        // Log activity
-        await prisma.activityLog.create({
-            data: {
-                projectId: validated.projectId,
-                type: 'DELIVERABLE_CREATED',
-                description: `Livrable "${deliverable.name}" créé (${deliverable.lot})`,
-                userId: user.id,
-            },
-        });
+        console.log('Deliverable created:', deliverable.id);
 
         return NextResponse.json({ deliverable }, { status: 201 });
 
     } catch (error) {
         console.error('Create deliverable error:', error);
         return NextResponse.json(
-            { error: error.message || 'Erreur lors de la création du livrable' },
+            { error: error.message || 'Erreur lors de la création' },
+            { status: 500 }
+        );
+    }
+}
+
+// PATCH /api/deliverables/[id] - Update deliverable status
+export async function PATCH(request) {
+    try {
+        const user = await requireAuth(request);
+        const body = await request.json();
+        const { id, status } = body;
+
+        if (!id || !status) {
+            return NextResponse.json(
+                { error: 'id et status requis' },
+                { status: 400 }
+            );
+        }
+
+        const deliverable = await prisma.deliverable.update({
+            where: { id },
+            data: { status },
+            include: {
+                createdBy: {
+                    select: {
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+
+        return NextResponse.json({ deliverable });
+
+    } catch (error) {
+        console.error('Update deliverable error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Erreur lors de la mise à jour' },
             { status: 500 }
         );
     }
