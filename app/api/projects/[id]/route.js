@@ -14,6 +14,17 @@ export async function GET(request, context) {
                 createdBy: {
                     select: { name: true, email: true },
                 },
+                contacts: true,
+                risks: {
+                    where: { status: { in: ['OPEN', 'MITIGATING'] } },
+                    orderBy: { createdAt: 'desc' },
+                },
+                deliverables: {
+                    where: {
+                        status: { not: 'VALIDE' },
+                        dueDate: { lt: new Date() }
+                    },
+                },
                 _count: {
                     select: {
                         deliverables: true,

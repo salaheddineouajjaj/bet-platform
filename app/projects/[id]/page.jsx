@@ -31,11 +31,7 @@ export default function ProjectOverviewPage({ params }) {
             }
 
             // Set the REAL project data
-            setProject({
-                ...data.project,
-                contacts: [],  // Empty for now
-                phases: [],    // Empty for now
-            });
+            setProject(data.project);
 
             setLoading(false);
         } catch (error) {
@@ -147,31 +143,57 @@ export default function ProjectOverviewPage({ params }) {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {project.contacts.map((contact, index) => (
-                                            <tr key={index}>
-                                                <td><strong>{contact.name}</strong></td>
-                                                <td>{contact.role}</td>
-                                                <td>{contact.email}</td>
-                                                <td>{contact.phone}</td>
+                                        {project.contacts && project.contacts.length > 0 ? (
+                                            project.contacts.map((contact, index) => (
+                                                <tr key={index}>
+                                                    <td><strong>{contact.name}</strong></td>
+                                                    <td>{contact.role}</td>
+                                                    <td>{contact.email}</td>
+                                                    <td>{contact.phone || '-'}</td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td><strong>{project.createdBy?.name || 'Administrateur'}</strong></td>
+                                                <td>Créateur du Projet</td>
+                                                <td>{project.createdBy?.email}</td>
+                                                <td>-</td>
                                             </tr>
-                                        ))}
+                                        )}
                                     </tbody>
                                 </table>
                             </div>
 
-                            {/* Blocking Points */}
                             <div className={styles.section} style={{ marginTop: 'var(--spacing-xl)' }}>
                                 <div className={styles.sectionHeader}>
                                     <h2 className={styles.sectionTitle}>⚠️ Points Bloquants Actifs</h2>
                                 </div>
-                                <div className={styles.alertCard}>
-                                    <div className={styles.alertTitle}>
-                                        🔴 Retard livrable CVC
+
+                                {project.risks?.map(risk => (
+                                    <div key={risk.id} className={styles.alertCard} style={{ marginBottom: '0.5rem', borderLeft: '4px solid orange' }}>
+                                        <div className={styles.alertTitle} style={{ color: 'orange' }}>
+                                            🟠 Risque: {risk.title}
+                                        </div>
+                                        <div className={styles.alertText}>
+                                            {risk.impactValue} - {risk.description}
+                                        </div>
                                     </div>
-                                    <div className={styles.alertText}>
-                                        Le schéma de ventilation est en retard de 5 jours (échéance: 10/05/2024)
+                                ))}
+
+                                {project.deliverables?.map(del => (
+                                    <div key={del.id} className={styles.alertCard} style={{ marginBottom: '0.5rem' }}>
+                                        <div className={styles.alertTitle}>
+                                            🔴 Retard Livrable: {del.name}
+                                        </div>
+                                        <div className={styles.alertText}>
+                                            Devait être rendu le {new Date(del.dueDate).toLocaleDateString('fr-FR')} ({del.lot})
+                                        </div>
                                     </div>
-                                </div>
+                                ))}
+
+                                {(!project.risks?.length && !project.deliverables?.length) && (
+                                    <div style={{ color: 'gray', fontStyle: 'italic', padding: '1rem', textAlign: 'center' }}>Aucun point bloquant identifié.</div>
+                                )}
                             </div>
                         </div>
 
@@ -257,6 +279,5 @@ export default function ProjectOverviewPage({ params }) {
                 </div>
             </div>
         </div>
-        </div >
     );
 }
