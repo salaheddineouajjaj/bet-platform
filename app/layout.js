@@ -1,4 +1,5 @@
 import "./globals.css";
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata = {
   title: "BET Platform - Gestion Collaborative de Projets",
@@ -9,7 +10,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="fr">
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

@@ -2,94 +2,159 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import styles from './login.module.css';
 
 export default function LoginPage() {
-    const router = useRouter();
     const [email, setEmail] = useState('');
-    const [loading, setLoading] = useState(false);
+    const [password, setPassword] = useState('demo123'); // Default password
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    const { signIn } = useAuth();
 
-    const testUsers = [
-        { email: 'chef@bet-platform.com', role: 'Chef de Projet', password: 'demo123' },
-        { email: 'structure@bet-platform.com', role: 'Référent Lot Structure', password: 'demo123' },
-        { email: 'cvc@bet-platform.com', role: 'Référent Lot CVC', password: 'demo123' },
-        { email: 'contrib@bet-platform.com', role: 'Contributeur Électricité', password: 'demo123' },
-        { email: 'moa@bet-platform.com', role: 'Externe (MOA)', password: 'demo123' },
+    // Test accounts
+    const testAccounts = [
+        {
+            email: 'chef@bet-platform.com',
+            name: 'Marie Dupont',
+            role: 'Chef de Projet',
+            description: 'Accès complet · Tous lots',
+            color: '#8b5cf6',
+        },
+        {
+            email: 'structure@bet-platform.com',
+            name: 'Pierre Martin',
+            role: 'Référent Lot Structure',
+            description: 'Gestion lot Structure uniquement',
+            color: '#3b82f6',
+        },
+        {
+            email: 'cvc@bet-platform.com',
+            name: 'Sophie Bernard',
+            role: 'Référente Lot CVC',
+            description: 'Gestion lot CVC uniquement',
+            color: '#06b6d4',
+        },
+        {
+            email: 'contrib@bet-platform.com',
+            name: 'Lucas Électricité',
+            role: 'Contributeur',
+            description: 'Consultation · Édition assignée',
+            color: '#10b981',
+        },
+        {
+            email: 'moa@bet-platform.com',
+            name: 'Jean Architecte',
+            role: 'Externe (MOA)',
+            description: 'Lecture seule · Validations',
+            color: '#f59e0b',
+        },
     ];
 
-    const handleLogin = (testEmail) => {
+    const handleQuickLogin = async (testEmail) => {
         setEmail(testEmail);
+        setError('');
         setLoading(true);
 
-        // Simulate login
-        setTimeout(() => {
-            localStorage.setItem('userEmail', testEmail);
+        try {
+            await signIn(testEmail, 'demo123');
             router.push('/projects');
-        }, 500);
+        } catch (err) {
+            setError(err.message || 'Erreur de connexion');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            await signIn(email, password);
+            router.push('/projects');
+        } catch (err) {
+            setError(err.message || 'Email ou mot de passe incorrect');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <div className={styles.page}>
+        <div className={styles.container}>
             <div className={styles.loginBox}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>BET Platform</h1>
-                    <p className={styles.subtitle}>Connexion</p>
+                    <h1>🏗️ BET Platform</h1>
+                    <p>Plateforme Collaborative de Gestion de Projets</p>
                 </div>
 
                 {error && (
-                    <div className={styles.error}>{error}</div>
+                    <div className={styles.error}>
+                        ⚠️ {error}
+                    </div>
                 )}
 
                 <div className={styles.testAccounts}>
-                    <p className={styles.testTitle}>🧪 Comptes de test disponibles:</p>
-                    <p className={styles.testSubtitle}>Cliquez sur un compte pour vous connecter</p>
+                    <h3>🧪 Comptes de Test</h3>
+                    <p className={styles.subtitle}>Cliquez sur un rôle pour vous connecter</p>
 
-                    <div className={styles.accountsList}>
-                        {testUsers.map((user) => (
+                    <div className={styles.accountsGrid}>
+                        {testAccounts.map((account) => (
                             <button
-                                key={user.email}
-                                onClick={() => handleLogin(user.email)}
-                                className={styles.accountBtn}
+                                key={account.email}
+                                onClick={() => handleQuickLogin(account.email)}
+                                className={styles.accountCard}
+                                style={{ borderColor: account.color }}
                                 disabled={loading}
                             >
-                                <div className={styles.accountRole}>{user.role}</div>
-                                <div className={styles.accountEmail}>{user.email}</div>
-                                <div className={styles.accountPassword}>Mot de passe: {user.password}</div>
+                                <div className={styles.accountRole} style={{ color: account.color }}>
+                                    {account.role}
+                                </div>
+                                <div className={styles.accountName}>{account.name}</div>
+                                <div className={styles.accountDesc}>{account.description}</div>
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className={styles.manualLogin}>
-                    <p className={styles.orDivider}>ou connexion manuelle</p>
-                    <form onSubmit={(e) => { e.preventDefault(); handleLogin(email); }}>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className={styles.input}
-                            required
-                        />
-                        <input
-                            type="password"
-                            placeholder="Mot de passe"
-                            className={styles.input}
-                            defaultValue="demo123"
-                        />
-                        <button
-                            type="submit"
-                            className={styles.loginBtn}
-                            disabled={loading}
-                        >
-                            {loading ? 'Connexion...' : 'Se connecter'}
-                        </button>
-                    </form>
+                <div className={styles.divider}>
+                    <span>OU</span>
                 </div>
 
-                <div className={styles.footer}>
-                    <a href="/" className={styles.backLink}>← Retour à l'accueil</a>
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    <div className={styles.formGroup}>
+                        <label>Email</label>
+                        <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="votre.email@exemple.com"
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label>Mot de passe</label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            required
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <button type="submit" className={styles.submitBtn} disabled={loading}>
+                        {loading ? 'Connexion...' : 'Se connecter'}
+                    </button>
+                </form>
+
+                <div className={styles.info}>
+                    <p>💡 <strong>Tous les comptes de test</strong> utilisent le mot de passe: <code>demo123</code></p>
                 </div>
             </div>
         </div>
