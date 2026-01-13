@@ -3,10 +3,10 @@ import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 
 // GET /api/projects/[id] - Get single project
-export async function GET(request, { params }) {
+export async function GET(request, context) {
     try {
         const user = await requireAuth(request);
-        const { id } = params;
+        const { id } = await context.params; // Await params in Next.js 16
 
         const project = await prisma.project.findUnique({
             where: { id },
