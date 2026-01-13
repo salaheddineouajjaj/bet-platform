@@ -4,52 +4,39 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation/Navigation';
 import NewProjectModal from '@/components/NewProjectModal/NewProjectModal';
+import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import styles from './projects.module.css';
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
+    const { user } = useAuth(); // Get real user from auth context
 
     useEffect(() => {
-        fetchProjects();
-        // Simulate getting current user (will be implemented with auth)
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
-    }, []);
+        if (user) {
+            fetchProjects();
+        }
+    }, [user]);
 
     const fetchProjects = async () => {
         try {
             setLoading(true);
-            // For now, use mock data
-            // Later: const res = await fetch('/api/projects');
-            // const data = await res.json();
 
-            // Mock data
-            setTimeout(() => {
-                setProjects([
-                    {
-                        id: '1',
-                        name: 'Construction Complexe Résidentiel Les Jardins',
-                        moa: 'Ville de Paris',
-                        architecte: 'Cabinet Architectes Associés',
-                        adresse: '45 Avenue de la République, 75011 Paris',
-                        phase: 'APD',
-                        _count: {
-                            deliverables: 5,
-                            documents: 3,
-                            remarks: 2,
-                        },
-                    },
-                ]);
-                setLoading(false);
-            }, 500);
+            // REAL API CALL to database
+            const response = await fetch('/api/projects');
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur de chargement');
+            }
+
+            setProjects(data.projects || []);
         } catch (error) {
             console.error('Error fetching projects:', error);
+            setProjects([]);
+        } finally {
             setLoading(false);
         }
     };
@@ -59,11 +46,26 @@ export default function ProjectsPage() {
             APS: 'APS - Avant-Projet Sommaire',
             APD: 'APD - Avant-Projet Définitif',
             PRO: 'PRO - Projet',
-            DCE: 'DCE - Dossier de Consultation',
-            ACT: 'ACT - Assistance aux Contrats',
+            DCE: 'DCE - Dossier Consultation Entreprises',
+            ACT: 'ACT - Assistance Contrats Travaux',
         };
         return phases[phase] || phase;
     };
+
+    const getPhaseColor = (phase) => {
+        const colors = {
+            APS: 'blue',
+            APD: 'purple',
+            PRO: 'orange',
+            DCE: 'green',
+            ACT: 'gray',
+        };
+        return colors[phase] || 'blue';
+    };
+
+    if (!user) {
+        return <div>Loading...</div>;
+    }
 
     return (
         <div className={styles.page}>
@@ -87,21 +89,22 @@ export default function ProjectsPage() {
 
             <div className="container">
                 {loading ? (
-                    <div className={styles.projectsGrid}>
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className={styles.loadingSkeleton}></div>
-                        ))}
+                    <div style={{ textAlign: 'center', padding: '4rem' }}>
+                        <p>Chargement des projets...</p>
                     </div>
                 ) : projects.length === 0 ? (
-                    <div className={styles.emptyState}>
-                        <div className={styles.emptyIcon}>📁</div>
-                        <h2 className={styles.emptyTitle}>Aucun projet</h2>
-                        <p className={styles.emptyText}>
-                            Commencez par créer votre premier projet pour gérer vos livrables et documents.
+                    <div style={{ textAlign: 'center', padding: '4rem' }}>
+                        <p style={{ color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                            Aucun projet
                         </p>
-                        <button className="btn btn-primary btn-lg">
-                            ➕ Créer mon premier projet
-                        </button>
+                        {hasPermission(user?.role, 'CREATE_PROJECT') && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setShowNewModal(true)}
+                            >
+                                ➕ Créer votre premier projet
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className={styles.projectsGrid}>
@@ -113,37 +116,37 @@ export default function ProjectsPage() {
                             >
                                 <div className={styles.projectHeader}>
                                     <h3 className={styles.projectName}>{project.name}</h3>
-                                    <span className={`badge badge-${project.phase === 'APD' ? 'blue' : 'purple'}`}>
-                                        {getPhaseLabel(project.phase)}
+                                    <span className={`badge badge-${getPhaseColor(project.phase)}`}>
+                                        {project.phase}
                                     </span>
                                 </div>
 
-                                <div className={styles.projectMeta}>
-                                    <div className={styles.metaRow}>
-                                        <span className={styles.metaLabel}>MOA:</span>
-                                        <span className={styles.metaValue}>{project.moa}</span>
+                                <div className={styles.projectInfo}>
+                                    <div className={styles.infoRow}>
+                                        <span className={styles.infoLabel}>MOA:</span>
+                                        <span className={styles.infoValue}>{project.moa}</span>
                                     </div>
-                                    <div className={styles.metaRow}>
-                                        <span className={styles.metaLabel}>Architecte:</span>
-                                        <span className={styles.metaValue}>{project.architecte}</span>
+                                    <div className={styles.infoRow}>
+                                        <span className={styles.infoLabel}>Architecte:</span>
+                                        <span className={styles.infoValue}>{project.architecte}</span>
                                     </div>
-                                    <div className={styles.metaRow}>
-                                        <span className={styles.metaLabel}>Adresse:</span>
-                                        <span className={styles.metaValue}>{project.adresse}</span>
+                                    <div className={styles.infoRow}>
+                                        <span className={styles.infoLabel}>📍</span>
+                                        <span className={styles.infoValue}>{project.adresse}</span>
                                     </div>
                                 </div>
 
                                 <div className={styles.projectStats}>
                                     <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count.deliverables}</span>
+                                        <span className={styles.statValue}>{project._count?.deliverables || 0}</span>
                                         <span className={styles.statLabel}>Livrables</span>
                                     </div>
                                     <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count.documents}</span>
+                                        <span className={styles.statValue}>{project._count?.documents || 0}</span>
                                         <span className={styles.statLabel}>Documents</span>
                                     </div>
                                     <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count.remarks}</span>
+                                        <span className={styles.statValue}>{project._count?.remarks || 0}</span>
                                         <span className={styles.statLabel}>Remarques</span>
                                     </div>
                                 </div>
@@ -157,7 +160,8 @@ export default function ProjectsPage() {
                 isOpen={showNewModal}
                 onClose={() => setShowNewModal(false)}
                 onSuccess={(newProject) => {
-                    setProjects([...projects, newProject]);
+                    setProjects([newProject, ...projects]);
+                    setShowNewModal(false);
                 }}
             />
         </div>

@@ -64,9 +64,13 @@ export default function Navigation({ projectId, user }) {
                                     </div>
                                     <button
                                         className="btn btn-ghost btn-sm"
-                                        onClick={() => {
-                                            localStorage.removeItem('userEmail');
-                                            window.location.href = '/auth/login';
+                                        onClick={async () => {
+                                            try {
+                                                const { signOut } = await import('@/contexts/AuthContext');
+                                                await signOut();
+                                            } catch (err) {
+                                                window.location.href = '/auth/login';
+                                            }
                                         }}
                                     >
                                         Déconnexion
