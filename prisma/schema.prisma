@@ -67,7 +67,7 @@ model Project {
   architecte  String
   adresse     String
   type        String       // Type de projet
-  enjeux      String       
+  enjeux      String?      // Optional - Description des enjeux
   phase       ProjectPhase @default(APS)
   createdById String
   createdBy   User         @relation("ProjectCreator", fields: [createdById], references: [id])
