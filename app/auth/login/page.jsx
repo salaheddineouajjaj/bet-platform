@@ -7,48 +7,42 @@ import styles from './login.module.css';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('demo123'); // Default password
+    const [password, setPassword] = useState('demo123');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const { signIn } = useAuth();
 
-    // Test accounts
     const testAccounts = [
         {
             email: 'chef@bet-platform.com',
             name: 'Marie Dupont',
             role: 'Chef de Projet',
             description: 'Accès complet · Tous lots',
-            color: '#8b5cf6',
         },
         {
             email: 'structure@bet-platform.com',
             name: 'Pierre Martin',
             role: 'Référent Lot Structure',
-            description: 'Gestion lot Structure uniquement',
-            color: '#3b82f6',
+            description: 'Gestion lot Structure',
         },
         {
             email: 'cvc@bet-platform.com',
             name: 'Sophie Bernard',
             role: 'Référente Lot CVC',
-            description: 'Gestion lot CVC uniquement',
-            color: '#06b6d4',
+            description: 'Gestion lot CVC',
         },
         {
             email: 'contrib@bet-platform.com',
             name: 'Lucas Électricité',
             role: 'Contributeur',
             description: 'Consultation · Édition assignée',
-            color: '#10b981',
         },
         {
             email: 'moa@bet-platform.com',
             name: 'Jean Architecte',
             role: 'Externe (MOA)',
             description: 'Lecture seule · Validations',
-            color: '#f59e0b',
         },
     ];
 
@@ -83,11 +77,11 @@ export default function LoginPage() {
     };
 
     return (
-        <div className={styles.container}>
+        <div className={styles.page}>
             <div className={styles.loginBox}>
                 <div className={styles.header}>
-                    <h1>🏗️ BET Platform</h1>
-                    <p>Plateforme Collaborative de Gestion de Projets</p>
+                    <h1 className={styles.title}>🏗️ BET Platform</h1>
+                    <p className={styles.subtitle}>Plateforme Collaborative de Gestion de Projets</p>
                 </div>
 
                 {error && (
@@ -97,64 +91,59 @@ export default function LoginPage() {
                 )}
 
                 <div className={styles.testAccounts}>
-                    <h3>🧪 Comptes de Test</h3>
-                    <p className={styles.subtitle}>Cliquez sur un rôle pour vous connecter</p>
+                    <h3 className={styles.testTitle}>🧪 Comptes de Test</h3>
+                    <p className={styles.testSubtitle}>Cliquez sur un rôle pour vous connecter</p>
 
-                    <div className={styles.accountsGrid}>
+                    <div className={styles.accountsList}>
                         {testAccounts.map((account) => (
                             <button
                                 key={account.email}
                                 onClick={() => handleQuickLogin(account.email)}
-                                className={styles.accountCard}
-                                style={{ borderColor: account.color }}
+                                className={styles.accountBtn}
                                 disabled={loading}
                             >
-                                <div className={styles.accountRole} style={{ color: account.color }}>
-                                    {account.role}
-                                </div>
-                                <div className={styles.accountName}>{account.name}</div>
-                                <div className={styles.accountDesc}>{account.description}</div>
+                                <div className={styles.accountRole}>{account.role}</div>
+                                <div className={styles.accountEmail}>{account.name}</div>
+                                <div className={styles.accountPassword}>{account.description}</div>
                             </button>
                         ))}
                     </div>
                 </div>
 
-                <div className={styles.divider}>
-                    <span>OU</span>
-                </div>
+                <div className={styles.manualLogin}>
+                    <p className={styles.orDivider}>OU</p>
 
-                <form onSubmit={handleSubmit} className={styles.form}>
-                    <div className={styles.formGroup}>
-                        <label>Email</label>
+                    <form onSubmit={handleSubmit}>
                         <input
                             type="email"
+                            className={styles.input}
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="votre.email@exemple.com"
+                            placeholder="Email"
                             required
                             disabled={loading}
                         />
-                    </div>
 
-                    <div className={styles.formGroup}>
-                        <label>Mot de passe</label>
                         <input
                             type="password"
+                            className={styles.input}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="••••••••"
+                            placeholder="Mot de passe"
                             required
                             disabled={loading}
                         />
+
+                        <button type="submit" className={styles.loginBtn} disabled={loading}>
+                            {loading ? 'Connexion...' : 'Se connecter'}
+                        </button>
+                    </form>
+
+                    <div className={styles.footer}>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+                            💡 Tous les comptes utilisent: <code>demo123</code>
+                        </p>
                     </div>
-
-                    <button type="submit" className={styles.submitBtn} disabled={loading}>
-                        {loading ? 'Connexion...' : 'Se connecter'}
-                    </button>
-                </form>
-
-                <div className={styles.info}>
-                    <p>💡 <strong>Tous les comptes de test</strong> utilisent le mot de passe: <code>demo123</code></p>
                 </div>
             </div>
         </div>

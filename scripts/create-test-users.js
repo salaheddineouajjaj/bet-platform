@@ -74,7 +74,8 @@ async function createTestUsers() {
                 throw authError;
             }
 
-            // Create user record in database
+            // Create user record in database with timestamps
+            const now = new Date().toISOString();
             const { error: dbError } = await supabase
                 .from('User')
                 .insert({
@@ -83,6 +84,8 @@ async function createTestUsers() {
                     name: userData.name,
                     role: userData.role,
                     lot: userData.lot,
+                    createdAt: now,
+                    updatedAt: now,
                 });
 
             if (dbError) throw dbError;
