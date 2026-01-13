@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import NewDecisionModal from '@/components/NewDecisionModal/NewDecisionModal';
 import { hasPermission } from '@/lib/permissions';
@@ -9,49 +10,33 @@ import styles from '../overview.module.css';
 
 export default function DecisionsPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [decisions, setDecisions] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
-        fetchDecisions();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchDecisions();
+        }
     }, [id]);
 
-    const fetchDecisions = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setDecisions([
-                {
-                    id: '1',
-                    type: 'TECHNIQUE',
-                    title: 'Choix système de fondations',
-                    description: 'Après étude géotechnique, décision de partir sur fondations semi-profondes (puits) au lieu de fondations superficielles.',
-                    impact: 'Budget: +150k€ / Planning: +2 semaines études',
-                    isValidated: true,
-                    validatedBy: 'Marie Dupont',
-                    validatedAt: '2024-04-10',
-                    decidedBy: { name: 'Marie Dupont', role: 'CHEF_DE_PROJET' },
-                    createdAt: '2024-04-10',
-                },
-                {
-                    id: '2',
-                    type: 'MOA_VALIDATION',
-                    title: 'Validation note de calcul structure APD',
-                    description: 'Validation de la note de calcul béton armé version 2.0 après intégration charges sismiques.',
-                    isValidated: true,
-                    validatedBy: 'Jean Architecte',
-                    validatedAt: '2024-05-16',
-                    decidedBy: { name: 'Jean Architecte', role: 'EXTERNE' },
-                    createdAt: '2024-05-16',
-                },
-            ]);
+    const fetchDecisions = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/decisions?projectId=${id}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setDecisions(data.decisions || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching decisions:', error);
+        } finally {
             setLoading(false);
-        }, 300);
+        }
     };
 
     const getTypeLabel = (type) => {

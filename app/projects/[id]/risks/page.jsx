@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import NewRiskModal from '@/components/NewRiskModal/NewRiskModal';
 import { hasPermission } from '@/lib/permissions';
@@ -9,50 +10,33 @@ import styles from '../overview.module.css';
 
 export default function RisksPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [risks, setRisks] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
-        fetchRisks();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchRisks();
+        }
     }, [id]);
 
-    const fetchRisks = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setRisks([
-                {
-                    id: '1',
-                    title: 'Retard livraison schémas CVC',
-                    description: 'Le lot CVC accumule du retard sur les schémas de ventilation. Risque de blocage pour la synthèse architecturale.',
-                    impactType: 'DELAY',
-                    impactValue: '2 semaines',
-                    mitigation: 'Renfort d\'une ressource supplémentaire sur le lot CVC.',
-                    status: 'MITIGATING',
-                    responsable: { name: 'Sophie Bernard' },
-                    createdBy: { name: 'Marie Dupont' },
-                    createdAt: '2024-05-15',
-                },
-                {
-                    id: '2',
-                    title: 'Dépassement budget fondations',
-                    description: 'Le changement de système de fondations entraîne un surcoût non prévu.',
-                    impactType: 'COST',
-                    impactValue: '150 000 EUR',
-                    mitigation: 'Négociation avec MOA pour rallonge budgétaire. Optimisation autres lots.',
-                    status: 'OPEN',
-                    responsable: { name: 'Marie Dupont' },
-                    createdBy: { name: 'Marie Dupont' },
-                    createdAt: '2024-04-12',
-                },
-            ]);
+    const fetchRisks = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/risks?projectId=${id}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setRisks(data.risks || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching risks:', error);
+        } finally {
             setLoading(false);
-        }, 300);
+        }
     };
 
     const getImpactColor = (type) => {

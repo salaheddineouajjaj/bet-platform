@@ -2,21 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import styles from './overview.module.css';
 
 export default function ProjectOverviewPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
 
     useEffect(() => {
-        fetchProject();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchProject();
+        }
     }, [id]);
 
     const fetchProject = async () => {

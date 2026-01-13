@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import NewMeetingModal from '@/components/NewMeetingModal/NewMeetingModal';
 import { hasPermission } from '@/lib/permissions';
@@ -9,38 +10,33 @@ import styles from '../overview.module.css';
 
 export default function MeetingsPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [meetings, setMeetings] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
-        fetchMeetings();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchMeetings();
+        }
     }, [id]);
 
-    const fetchMeetings = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setMeetings([
-                {
-                    id: '1',
-                    title: 'Réunion de coordination technique APD',
-                    date: '2024-05-15T14:00:00',
-                    participants: ['Marie Dupont', 'Pierre Martin', 'Sophie Bernard', 'Jean Architecte'],
-                    crContent: `# Réunion de coordination technique APD\n\n## Points abordés\n- Avancement livrables APD\n- Remarques MOA\n- Planning`,
-                    organizer: { name: 'Marie Dupont' },
-                    actionItems: [
-                        { id: '1', description: 'Intégrer charges sismiques', assignedTo: { name: 'Pierre Martin' }, dueDate: '2024-05-25', status: 'IN_PROGRESS' },
-                        { id: '2', description: 'Clarifier détails ancrage', assignedTo: { name: 'Pierre Martin' }, dueDate: '2024-06-05', status: 'TODO' },
-                    ],
-                },
-            ]);
+    const fetchMeetings = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/meetings?projectId=${id}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setMeetings(data.meetings || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching meetings:', error);
+        } finally {
             setLoading(false);
-        }, 300);
+        }
     };
 
     return (

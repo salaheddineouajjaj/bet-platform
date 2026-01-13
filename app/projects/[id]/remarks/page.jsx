@@ -1,59 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import NewRemarkModal from '@/components/NewRemarkModal/NewRemarkModal';
 import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function RemarksPage({ params }) {
-    const { id } = use(params);
+    const { id } = params;
+    const { user } = useAuth();
     const [remarks, setRemarks] = useState([]);
     const [selectedRemark, setSelectedRemark] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
-        fetchRemarks();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchRemarks();
+        }
     }, [id]);
 
-    const fetchRemarks = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setRemarks([
-                {
-                    id: '1',
-                    title: 'Vérification charge sismique',
-                    description: 'La note de calcul doit intégrer les charges sismiques selon la zone 4.',
-                    priority: 'HAUTE',
-                    status: 'EN_COURS',
-                    responsable: { name: 'Pierre Martin' },
-                    deadline: '2024-05-25',
-                    createdBy: { name: 'Marie Dupont' },
-                    comments: [
-                        { id: '1', content: 'Pris en compte, je mets à jour la note.', author: { name: 'Pierre Martin' }, createdAt: '2024-05-14' },
-                    ],
-                },
-                {
-                    id: '2',
-                    title: 'Détail ancrage poteaux',
-                    description: 'Les détails d\'ancrage des poteaux en zone de reprise ne sont pas clairs.',
-                    priority: 'MOYENNE',
-                    status: 'OUVERT',
-                    responsable: { name: 'Pierre Martin' },
-                    deadline: '2024-06-05',
-                    createdBy: { name: 'Jean Architecte' },
-                    comments: [],
-                },
-            ]);
+    const fetchRemarks = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/remarks?projectId=${id}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setRemarks(data.remarks || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching remarks:', error);
+        } finally {
             setLoading(false);
-        }, 300);
+        }
     };
 
     const getPriorityColor = (priority) => {

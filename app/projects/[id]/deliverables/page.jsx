@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import KanbanBoard from '@/components/KanbanBoard/KanbanBoard';
 import NewDeliverableModal from '@/components/NewDeliverableModal/NewDeliverableModal';
@@ -10,81 +11,32 @@ import styles from '../overview.module.css';
 
 export default function DeliverablesPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [deliverables, setDeliverables] = useState([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('kanban'); // 'kanban' or 'table'
-    const [user, setUser] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
 
     useEffect(() => {
-        fetchDeliverables();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchDeliverables();
+        }
     }, [id]);
 
     const fetchDeliverables = async () => {
         try {
             setLoading(true);
-            // Mock data
-            setTimeout(() => {
-                setDeliverables([
-                    {
-                        id: '1',
-                        name: 'Note de calcul béton armé',
-                        lot: 'Structure',
-                        phase: 'APD',
-                        responsable: 'Pierre Martin',
-                        dueDate: '2024-05-15',
-                        status: 'VALIDE',
-                        version: '2.0',
-                    },
-                    {
-                        id: '2',
-                        name: 'Plans de ferraillage fondations',
-                        lot: 'Structure',
-                        phase: 'APD',
-                        responsable: 'Pierre Martin',
-                        dueDate: '2024-06-01',
-                        status: 'A_VALIDER',
-                        version: '1.0',
-                    },
-                    {
-                        id: '3',
-                        name: 'Note de dimensionnement chauffage',
-                        lot: 'CVC',
-                        phase: 'APD',
-                        responsable: 'Sophie Bernard',
-                        dueDate: '2024-05-20',
-                        status: 'EN_COURS',
-                        version: '1.0',
-                    },
-                    {
-                        id: '4',
-                        name: 'Schémas de principe ventilation',
-                        lot: 'CVC',
-                        phase: 'APD',
-                        responsable: 'Sophie Bernard',
-                        dueDate: '2024-05-10', // Late!
-                        status: 'EN_COURS',
-                        version: '1.0',
-                    },
-                    {
-                        id: '5',
-                        name: 'Schéma unifilaire tableau général',
-                        lot: 'Électricité',
-                        phase: 'APD',
-                        responsable: 'Luc Moreau',
-                        dueDate: '2024-06-10',
-                        status: 'A_FAIRE',
-                        version: '1.0',
-                    },
-                ]);
-                setLoading(false);
-            }, 500);
+            const response = await fetch(`/api/deliverables?projectId=${id}`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setDeliverables(data.deliverables || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching deliverables:', error);
+        } finally {
             setLoading(false);
         }
     };
