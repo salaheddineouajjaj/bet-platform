@@ -25,6 +25,10 @@ export async function GET(request, context) {
                         dueDate: { lt: new Date() }
                     },
                 },
+                decisions: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 5
+                },
                 _count: {
                     select: {
                         deliverables: true,

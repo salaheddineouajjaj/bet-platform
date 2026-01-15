@@ -43,11 +43,14 @@ export default function ProjectOverviewPage({ params }) {
 
     const getPhaseLabel = (phase) => {
         const phases = {
+            ESQUISSE: 'ESQ - Esquisse',
             APS: 'APS - Avant-Projet Sommaire',
             APD: 'APD - Avant-Projet Définitif',
             PRO: 'PRO - Projet',
             DCE: 'DCE - Dossier de Consultation',
-            ACT: 'ACT - Assistance aux Contrats',
+            ACT: 'ACT - Assistance Contrats',
+            DET: 'DET - Direction Execution',
+            AOR: 'AOR - Assistance Operations Reception',
         };
         return phases[phase] || phase;
     };
@@ -244,14 +247,18 @@ export default function ProjectOverviewPage({ params }) {
                                 <a href={`/projects/${id}/decisions`} className="btn btn-sm btn-ghost">Voir tout</a>
                             </div>
                             <div className={styles.decisionsList}>
-                                <div className={styles.decisionCard}>
-                                    <div className={styles.decisionTitle}>Choix système de fondations</div>
-                                    <div className={styles.decisionMeta}>10/04/2024 • Technique</div>
-                                </div>
-                                <div className={styles.decisionCard}>
-                                    <div className={styles.decisionTitle}>Validation note de calcul APD</div>
-                                    <div className={styles.decisionMeta}>16/05/2024 • MOA</div>
-                                </div>
+                                {project.decisions && project.decisions.length > 0 ? (
+                                    project.decisions.map(decision => (
+                                        <div key={decision.id} className={styles.decisionCard}>
+                                            <div className={styles.decisionTitle}>{decision.title}</div>
+                                            <div className={styles.decisionMeta}>
+                                                {new Date(decision.createdAt).toLocaleDateString('fr-FR')} • {decision.type}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div style={{ color: 'gray', fontStyle: 'italic', padding: '1rem' }}>Aucune décision actée.</div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -263,18 +270,34 @@ export default function ProjectOverviewPage({ params }) {
                         <h2 className={styles.sectionTitle}>📊 Timeline du Projet</h2>
                     </div>
                     <div className={styles.timeline}>
-                        <div className={`${styles.timelineItem} ${styles.timelineItemComplete}`}>
-                            <div className={styles.timelineTitle}>APS - Avant-Projet Sommaire</div>
-                            <div className={styles.timelineDate}>01/01/2024 - 31/03/2024 • ✅ Terminé</div>
-                        </div>
-                        <div className={`${styles.timelineItem} ${styles.timelineItemActive}`}>
-                            <div className={styles.timelineTitle}>APD - Avant-Projet Définitif</div>
-                            <div className={styles.timelineDate}>01/04/2024 - 30/06/2024 • 🔵 En cours</div>
-                        </div>
-                        <div className={styles.timelineItem}>
-                            <div className={styles.timelineTitle}>PRO - Projet</div>
-                            <div className={styles.timelineDate}>01/07/2024 - 31/10/2024 • ⏳ À venir</div>
-                        </div>
+                        {['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'].map((phaseCode) => {
+                            const phasesOrder = ['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'];
+                            const currentIndex = phasesOrder.indexOf(project.phase);
+                            const phaseIndex = phasesOrder.indexOf(phaseCode);
+
+                            let statusClass = styles.timelineItem;
+                            let statusText = 'À venir';
+                            let icon = '⏳';
+
+                            if (phaseIndex < currentIndex) {
+                                statusClass = `${styles.timelineItem} ${styles.timelineItemComplete}`;
+                                statusText = 'Terminé';
+                                icon = '✅';
+                            } else if (phaseIndex === currentIndex) {
+                                statusClass = `${styles.timelineItem} ${styles.timelineItemActive}`;
+                                statusText = 'En cours';
+                                icon = '🔵';
+                            }
+
+                            return (
+                                <div key={phaseCode} className={statusClass}>
+                                    <div className={styles.timelineTitle}>{getPhaseLabel(phaseCode)}</div>
+                                    <div className={styles.timelineDate}>
+                                        {icon} {statusText}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
