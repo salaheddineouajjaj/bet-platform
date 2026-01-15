@@ -69,7 +69,7 @@ export default function RisksPage({ params }) {
                         <div>
                             <h1>⚠️ Risques & Retards</h1>
                             <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
-                                {risks.filter(r => r.status !== 'RESOLVED').length} risques actifs sur {risks.length} total
+                                {risks?.filter(r => r.status !== 'RESOLVED').length || 0} risques actifs sur {risks?.length || 0} total
                             </p>
                         </div>
                         {hasPermission(user?.role, 'CREATE_RISK') && (
@@ -84,7 +84,7 @@ export default function RisksPage({ params }) {
 
                     {loading ? (
                         <p style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</p>
-                    ) : (
+                    ) : risks && risks.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                             {risks.map((risk) => (
                                 <div key={risk.id} className={styles.section}>
@@ -122,7 +122,7 @@ export default function RisksPage({ params }) {
                                                 Responsable
                                             </div>
                                             <div style={{ fontWeight: 600 }}>
-                                                {risk.responsable.name}
+                                                {risk.responsable?.name || 'Non assigné'}
                                             </div>
                                         </div>
                                         <div>
@@ -145,6 +145,10 @@ export default function RisksPage({ params }) {
                                 </div>
                             ))}
                         </div>
+                    ) : (
+                        <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                            Aucun risque identifié pour ce projet
+                        </p>
                     )}
                 </div>
             </div>
