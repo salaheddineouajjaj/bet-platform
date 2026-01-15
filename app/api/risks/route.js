@@ -19,6 +19,9 @@ export async function GET(request) {
             include: {
                 responsable: {
                     select: { name: true, email: true }
+                },
+                createdBy: {
+                    select: { name: true, email: true }
                 }
             }
         });

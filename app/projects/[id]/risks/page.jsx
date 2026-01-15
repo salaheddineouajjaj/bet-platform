@@ -130,7 +130,7 @@ export default function RisksPage({ params }) {
                                                 Identifié par
                                             </div>
                                             <div style={{ fontWeight: 600 }}>
-                                                {risk.createdBy.name}
+                                                {risk.createdBy?.name || 'Inconnu'}
                                             </div>
                                         </div>
                                         <div>
