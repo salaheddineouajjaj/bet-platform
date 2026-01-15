@@ -12,6 +12,8 @@ export default function ProjectsPage() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showNewModal, setShowNewModal] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // Project to delete
+    const [deleting, setDeleting] = useState(false);
     const { user } = useAuth(); // Get real user from auth context
 
     useEffect(() => {
@@ -38,6 +40,38 @@ export default function ProjectsPage() {
             setProjects([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (e, project) => {
+        e.preventDefault(); // Prevent navigation to project page
+        e.stopPropagation();
+        setDeleteConfirm(project);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+
+        setDeleting(true);
+        try {
+            const response = await fetch(`/api/projects?id=${deleteConfirm.id}`, {
+                method: 'DELETE',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de la suppression');
+            }
+
+            // Remove project from state
+            setProjects(projects.filter(p => p.id !== deleteConfirm.id));
+            setDeleteConfirm(null);
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            alert('Erreur: ' + error.message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -109,48 +143,58 @@ export default function ProjectsPage() {
                 ) : (
                     <div className={styles.projectsGrid}>
                         {projects.map((project) => (
-                            <Link
-                                key={project.id}
-                                href={`/projects/${project.id}`}
-                                className={styles.projectCard}
-                            >
-                                <div className={styles.projectHeader}>
-                                    <h3 className={styles.projectName}>{project.name}</h3>
-                                    <span className={`badge badge-${getPhaseColor(project.phase)}`}>
-                                        {project.phase}
-                                    </span>
-                                </div>
+                            <div key={project.id} className={styles.projectCardWrapper}>
+                                <Link
+                                    href={`/projects/${project.id}`}
+                                    className={styles.projectCard}
+                                >
+                                    <div className={styles.projectHeader}>
+                                        <h3 className={styles.projectName}>{project.name}</h3>
+                                        <span className={`badge badge-${getPhaseColor(project.phase)}`}>
+                                            {project.phase}
+                                        </span>
+                                    </div>
 
-                                <div className={styles.projectInfo}>
-                                    <div className={styles.infoRow}>
-                                        <span className={styles.infoLabel}>MOA:</span>
-                                        <span className={styles.infoValue}>{project.moa}</span>
+                                    <div className={styles.projectInfo}>
+                                        <div className={styles.infoRow}>
+                                            <span className={styles.infoLabel}>MOA:</span>
+                                            <span className={styles.infoValue}>{project.moa}</span>
+                                        </div>
+                                        <div className={styles.infoRow}>
+                                            <span className={styles.infoLabel}>Architecte:</span>
+                                            <span className={styles.infoValue}>{project.architecte}</span>
+                                        </div>
+                                        <div className={styles.infoRow}>
+                                            <span className={styles.infoLabel}>📍</span>
+                                            <span className={styles.infoValue}>{project.adresse}</span>
+                                        </div>
                                     </div>
-                                    <div className={styles.infoRow}>
-                                        <span className={styles.infoLabel}>Architecte:</span>
-                                        <span className={styles.infoValue}>{project.architecte}</span>
-                                    </div>
-                                    <div className={styles.infoRow}>
-                                        <span className={styles.infoLabel}>📍</span>
-                                        <span className={styles.infoValue}>{project.adresse}</span>
-                                    </div>
-                                </div>
 
-                                <div className={styles.projectStats}>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count?.deliverables || 0}</span>
-                                        <span className={styles.statLabel}>Livrables</span>
+                                    <div className={styles.projectStats}>
+                                        <div className={styles.stat}>
+                                            <span className={styles.statValue}>{project._count?.deliverables || 0}</span>
+                                            <span className={styles.statLabel}>Livrables</span>
+                                        </div>
+                                        <div className={styles.stat}>
+                                            <span className={styles.statValue}>{project._count?.documents || 0}</span>
+                                            <span className={styles.statLabel}>Documents</span>
+                                        </div>
+                                        <div className={styles.stat}>
+                                            <span className={styles.statValue}>{project._count?.remarks || 0}</span>
+                                            <span className={styles.statLabel}>Remarques</span>
+                                        </div>
                                     </div>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count?.documents || 0}</span>
-                                        <span className={styles.statLabel}>Documents</span>
-                                    </div>
-                                    <div className={styles.stat}>
-                                        <span className={styles.statValue}>{project._count?.remarks || 0}</span>
-                                        <span className={styles.statLabel}>Remarques</span>
-                                    </div>
-                                </div>
-                            </Link>
+                                </Link>
+                                {hasPermission(user?.role, 'DELETE_PROJECT') && (
+                                    <button
+                                        className={styles.deleteButton}
+                                        onClick={(e) => handleDeleteClick(e, project)}
+                                        title="Supprimer le projet"
+                                    >
+                                        🗑️
+                                    </button>
+                                )}
+                            </div>
                         ))}
                     </div>
                 )}
@@ -164,6 +208,39 @@ export default function ProjectsPage() {
                     setShowNewModal(false);
                 }}
             />
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <div className={styles.modalOverlay} onClick={() => setDeleteConfirm(null)}>
+                    <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                        <div className={styles.modalHeader}>
+                            <h2>⚠️ Supprimer le projet</h2>
+                        </div>
+                        <div className={styles.modalBody}>
+                            <p>Êtes-vous sûr de vouloir supprimer le projet <strong>"{deleteConfirm.name}"</strong> ?</p>
+                            <p className={styles.warningText}>
+                                Cette action est irréversible. Tous les livrables, documents, réunions, remarques et autres données associées seront également supprimés.
+                            </p>
+                        </div>
+                        <div className={styles.modalFooter}>
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setDeleteConfirm(null)}
+                                disabled={deleting}
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                className={styles.deleteConfirmButton}
+                                onClick={confirmDelete}
+                                disabled={deleting}
+                            >
+                                {deleting ? '⏳ Suppression...' : '🗑️ Supprimer définitivement'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

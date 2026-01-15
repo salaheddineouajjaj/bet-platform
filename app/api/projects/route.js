@@ -120,3 +120,68 @@ export async function POST(request) {
         );
     }
 }
+
+// DELETE /api/projects?id=xxx - Delete a project
+export async function DELETE(request) {
+    try {
+        const user = await requirePermission(request, 'DELETE_PROJECT');
+        const { searchParams } = new URL(request.url);
+        const projectId = searchParams.get('id');
+
+        if (!projectId) {
+            return NextResponse.json(
+                { error: 'ID du projet requis' },
+                { status: 400 }
+            );
+        }
+
+        // Check if project exists
+        const project = await prisma.project.findUnique({
+            where: { id: projectId },
+        });
+
+        if (!project) {
+            return NextResponse.json(
+                { error: 'Projet non trouvé' },
+                { status: 404 }
+            );
+        }
+
+        // Delete all related records in the correct order to avoid foreign key constraints
+        // 1. Delete ActionItems (depends on Meeting)
+        await prisma.actionItem.deleteMany({
+            where: { meeting: { projectId: projectId } },
+        });
+
+        // 2. Delete RemarkComments (depends on Remark)
+        await prisma.remarkComment.deleteMany({
+            where: { remark: { projectId: projectId } },
+        });
+
+        // 3. Delete the rest of related records
+        await prisma.meeting.deleteMany({ where: { projectId: projectId } });
+        await prisma.remark.deleteMany({ where: { projectId: projectId } });
+        await prisma.decision.deleteMany({ where: { projectId: projectId } });
+        await prisma.risk.deleteMany({ where: { projectId: projectId } });
+        await prisma.document.deleteMany({ where: { projectId: projectId } });
+        await prisma.deliverable.deleteMany({ where: { projectId: projectId } });
+        await prisma.projectContact.deleteMany({ where: { projectId: projectId } });
+        await prisma.activityLog.deleteMany({ where: { projectId: projectId } });
+
+        // 4. Finally delete the project
+        await prisma.project.delete({
+            where: { id: projectId },
+        });
+
+        console.log('Project deleted:', projectId);
+
+        return NextResponse.json({ success: true, message: 'Projet supprimé avec succès' });
+
+    } catch (error) {
+        console.error('Delete project error:', error);
+        return NextResponse.json(
+            { error: error.message || 'Erreur lors de la suppression du projet' },
+            { status: error.message === 'Unauthorized' ? 401 : error.message === 'Forbidden' ? 403 : 500 }
+        );
+    }
+}
