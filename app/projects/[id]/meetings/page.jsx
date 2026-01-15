@@ -116,7 +116,7 @@ export default function MeetingsPage({ params }) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {meeting.actionItems.map((action) => (
+                                                {meeting.actionItems?.map((action) => (
                                                     <tr key={action.id}>
                                                         <td>{action.description}</td>
                                                         <td>{action.assignedTo.name}</td>

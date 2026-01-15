@@ -19,6 +19,14 @@ export async function GET(request) {
             include: {
                 organizer: {
                     select: { name: true, email: true }
+                },
+                actionItems: {
+                    include: {
+                        assignedTo: {
+                            select: { name: true, email: true }
+                        }
+                    },
+                    orderBy: { createdAt: 'asc' }
                 }
             }
         });
