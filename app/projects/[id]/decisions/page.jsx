@@ -67,7 +67,7 @@ export default function DecisionsPage({ params }) {
                         <div>
                             <h1>✅ Décisions & Validations</h1>
                             <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
-                                Journal audit immutable • {decisions.length} décisions enregistrées
+                                Journal audit immutable • {decisions?.length || 0} décisions enregistrées
                             </p>
                         </div>
                         {hasPermission(user?.role, 'CREATE_DECISION') && (
@@ -82,7 +82,7 @@ export default function DecisionsPage({ params }) {
 
                     {loading ? (
                         <p style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</p>
-                    ) : (
+                    ) : decisions && decisions.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
                             {decisions.map((decision) => (
                                 <div key={decision.id} className={styles.section}>
@@ -104,7 +104,7 @@ export default function DecisionsPage({ params }) {
                                         </div>
                                         <div style={{ textAlign: 'right', fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
                                             <div>🗓️ {new Date(decision.createdAt).toLocaleDateString('fr-FR')}</div>
-                                            <div>👤 {decision.decidedBy.name}</div>
+                                            <div>👤 {decision.decidedBy?.name || 'Inconnu'}</div>
                                         </div>
                                     </div>
 
@@ -132,6 +132,10 @@ export default function DecisionsPage({ params }) {
                                 </div>
                             ))}
                         </div>
+                    ) : (
+                        <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                            Aucune décision pour ce projet
+                        </p>
                     )}
                 </div>
             </div>
