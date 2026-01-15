@@ -19,10 +19,18 @@ export default function NewMeetingModal({ isOpen, onClose, projectId, onSuccess 
         setError('');
 
         try {
+            // Convert participants from comma-separated text to JSON array
+            const participantsArray = formData.participants.split(',').map(p => p.trim()).filter(p => p);
+            const participantsJSON = JSON.stringify(participantsArray);
+
             const response = await fetch('/api/meetings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, projectId }),
+                body: JSON.stringify({
+                    ...formData,
+                    participants: participantsJSON,
+                    projectId
+                }),
             });
 
             const data = await response.json();

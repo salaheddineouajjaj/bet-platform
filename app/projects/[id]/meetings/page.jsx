@@ -61,10 +61,19 @@ export default function MeetingsPage({ params }) {
                         <p style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</p>
                     ) : meetings && meetings.length > 0 ? (
                         meetings.map((meeting) => {
-                            // Parse participants from JSON string
-                            const participants = typeof meeting.participants === 'string'
-                                ? JSON.parse(meeting.participants)
-                                : (Array.isArray(meeting.participants) ? meeting.participants : []);
+                            // Parse participants from JSON string safely
+                            let participants = [];
+                            try {
+                                if (typeof meeting.participants === 'string') {
+                                    participants = JSON.parse(meeting.participants);
+                                } else if (Array.isArray(meeting.participants)) {
+                                    participants = meeting.participants;
+                                }
+                            } catch (e) {
+                                // If JSON parsing fails, treat as comma-separated string
+                                console.warn('Failed to parse participants JSON:', e);
+                                participants = meeting.participants ? String(meeting.participants).split(',').map(p => p.trim()) : [];
+                            }
 
                             return (
                                 <div key={meeting.id} className={styles.section} style={{ marginBottom: 'var(--spacing-xl)' }}>
