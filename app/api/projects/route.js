@@ -78,10 +78,10 @@ export async function POST(request) {
                 architecte: body.architecte,
                 adresse: body.adresse,
                 type: body.type,
-                // enjeux: body.enjeux || null,
+                enjeux: body.enjeux || null,
                 phase: body.phase,
-                // startDate: body.startDate ? new Date(body.startDate) : null,
-                // endDate: body.endDate ? new Date(body.endDate) : null,
+                startDate: body.startDate ? new Date(body.startDate) : null,
+                endDate: body.endDate ? new Date(body.endDate) : null,
                 createdById: user.id,
             },
             include: {

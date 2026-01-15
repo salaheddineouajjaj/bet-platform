@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { use } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import NewRemarkModal from '@/components/NewRemarkModal/NewRemarkModal';
@@ -8,7 +9,7 @@ import { hasPermission } from '@/lib/permissions';
 import styles from '../overview.module.css';
 
 export default function RemarksPage({ params }) {
-    const { id } = params;
+    const { id } = use(params);
     const { user } = useAuth();
     const [remarks, setRemarks] = useState([]);
     const [selectedRemark, setSelectedRemark] = useState(null);

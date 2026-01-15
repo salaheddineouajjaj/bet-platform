@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { use } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import UploadDocumentModal from '@/components/UploadDocumentModal/UploadDocumentModal';
 import { hasPermission } from '@/lib/permissions';
@@ -18,59 +19,34 @@ const FOLDER_STRUCTURE = [
 
 export default function DocumentsPage({ params }) {
     const { id } = use(params);
+    const { user } = useAuth();
     const [documents, setDocuments] = useState([]);
     const [selectedFolder, setSelectedFolder] = useState('00_Admin');
     const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
 
     useEffect(() => {
-        fetchDocuments();
-        setUser({
-            name: 'Marie Dupont',
-            role: 'CHEF_DE_PROJET',
-        });
+        if (id) {
+            fetchDocuments();
+        }
     }, [id, selectedFolder]);
 
-    const fetchDocuments = () => {
-        setLoading(true);
+    const fetchDocuments = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch(`/api/documents?projectId=${id}&path=${selectedFolder}`);
+            const data = await response.json();
 
-        // Get from localStorage
-        const stored = localStorage.getItem('bet_documents');
-        let allDocs = [];
-
-        if (stored) {
-            allDocs = JSON.parse(stored);
-        } else {
-            // Initial mock data
-            allDocs = [
-                {
-                    id: '1',
-                    title: 'CCTP Général',
-                    filename: 'CCTP_general.pdf',
-                    folder: '00_Admin',
-                    lot: 'Général',
-                    version: '1.0',
-                    uploadedBy: { name: 'Marie Dupont' },
-                    uploadedAt: new Date().toISOString(),
-                },
-                {
-                    id: '2',
-                    title: 'Note de calcul béton armé v2.0',
-                    filename: 'Note_calcul_BA_v2.0.pdf',
-                    folder: '02_APD',
-                    lot: 'Structure',
-                    version: '2.0',
-                    uploadedBy: { name: 'Pierre Martin' },
-                    uploadedAt: new Date().toISOString(),
-                },
-            ];
-            localStorage.setItem('bet_documents', JSON.stringify(allDocs));
+            if (response.ok) {
+                setDocuments(data.documents || []);
+            } else {
+                console.error("Erreur chargement:", data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching documents:', error);
+        } finally {
+            setLoading(false);
         }
-
-        const filtered = allDocs.filter(doc => doc.folder === selectedFolder);
-        setDocuments(filtered);
-        setLoading(false);
     };
 
     const handleViewDocument = (doc) => {
