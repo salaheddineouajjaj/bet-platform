@@ -78,7 +78,7 @@ export default function RemarksPage({ params }) {
 
                                 {loading ? (
                                     <p style={{ textAlign: 'center', padding: '2rem' }}>Chargement...</p>
-                                ) : (
+                                ) : remarks && remarks.length > 0 ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
                                         {remarks.map((remark) => (
                                             <div
@@ -110,6 +110,10 @@ export default function RemarksPage({ params }) {
                                             </div>
                                         ))}
                                     </div>
+                                ) : (
+                                    <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-secondary)' }}>
+                                        Aucune remarque pour ce projet
+                                    </p>
                                 )}
                             </div>
                         </div>
