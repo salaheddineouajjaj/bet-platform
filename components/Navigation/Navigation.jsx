@@ -62,6 +62,11 @@ export default function Navigation({ projectId, user }) {
                                             </div>
                                         </div>
                                     </div>
+                                    {user.role === 'CHEF_DE_PROJET' && (
+                                        <Link href="/admin/users" className={styles.adminLink} title="Gestion des utilisateurs">
+                                            👥 Admin
+                                        </Link>
+                                    )}
                                     <button
                                         className="btn btn-ghost btn-sm"
                                         onClick={async () => {

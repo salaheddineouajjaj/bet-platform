@@ -25,14 +25,10 @@ export default function AuthCallbackPage() {
                 throw new Error('Aucune session trouvée');
             }
 
-            setStatus('Connexion réussie! Configuration de votre compte...');
+            setStatus('Vérification de votre compte...');
 
             const authUser = session.user;
             const email = authUser.email;
-            const name = authUser.user_metadata?.full_name ||
-                authUser.user_metadata?.name ||
-                authUser.user_metadata?.user_name ||
-                email.split('@')[0];
 
             // Check if user exists in database
             const { data: existingUser, error: userError } = await supabase
@@ -47,27 +43,14 @@ export default function AuthCallbackPage() {
             }
 
             if (!existingUser) {
-                setStatus('Création de votre profil...');
-
-                // Create new user in database with default role
-                const { error: createError } = await supabase
-                    .from('User')
-                    .insert({
-                        id: crypto.randomUUID(),
-                        email: email,
-                        name: name,
-                        role: 'CONTRIBUTEUR', // Default role for new GitHub users
-                        lot: null,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    });
-
-                if (createError) throw createError;
-
-                setStatus('Profil créé! Redirection...');
-            } else {
-                setStatus('Bienvenue! Redirection...');
+                // User doesn't exist - REJECT and sign out
+                await supabase.auth.signOut();
+                setError(`Accès refusé. Aucun compte n'existe pour "${email}". Contactez un administrateur pour créer votre compte.`);
+                return;
             }
+
+            // User exists - allow login
+            setStatus(`Bienvenue ${existingUser.name}! Redirection...`);
 
             // Redirect to projects page
             setTimeout(() => {
@@ -77,6 +60,8 @@ export default function AuthCallbackPage() {
         } catch (error) {
             console.error('Callback error:', error);
             setError(error.message || 'Une erreur est survenue');
+            // Sign out on error
+            await supabase.auth.signOut();
         }
     }
 
