@@ -50,56 +50,64 @@ export default function DocumentsPage({ params }) {
     };
 
     const handleViewDocument = (doc) => {
-        if (doc.fileData) {
-            // Open uploaded file
-            window.open(doc.fileData, '_blank');
+        // Open the document in a new tab
+        if (doc.storageUrl) {
+            window.open(doc.storageUrl, '_blank');
         } else {
-            // Generate a demo PDF for mock documents
-            const pdfWindow = window.open('', '_blank');
-            pdfWindow.document.write(`
-                <html>
-                <head><title>${doc.title}</title></head>
-                <body style="font-family: Arial; padding: 40px;">
-                    <h1>📄 ${doc.title}</h1>
-                    <p><strong>Fichier:</strong> ${doc.filename}</p>
-                    <p><strong>Lot:</strong> ${doc.lot}</p>
-                    <p><strong>Version:</strong> v${doc.version}</p>
-                    <hr>
-                    <p>Ceci est un document de démo.</p>
-                    <p>En production, le vrai fichier PDF s'afficherait ici.</p>
-                </body>
-                </html>
-            `);
+            alert('URL du document non disponible');
         }
     };
 
-    const handleDownloadDocument = (doc) => {
-        if (doc.fileData) {
-            // Download real uploaded file
-            const link = document.createElement('a');
-            link.href = doc.fileData;
-            link.download = doc.filename;
-            link.click();
-        } else {
-            // Generate demo PDF for download
-            const content = `BET PLATFORM - DOCUMENT\n\nTitre: ${doc.title}\nFichier: ${doc.filename}\nLot: ${doc.lot}\nVersion: v${doc.version}\nDéposé par: ${doc.uploadedBy.name}\nDate: ${new Date(doc.uploadedAt).toLocaleDateString('fr-FR')}\n\nCeci est un document de démo.`;
-            const blob = new Blob([content], { type: 'text/plain' });
+    const handleDownloadDocument = async (doc) => {
+        try {
+            if (!doc.storageUrl) {
+                alert('URL du document non disponible');
+                return;
+            }
+
+            // Fetch the file
+            const response = await fetch(doc.storageUrl);
+            const blob = await response.blob();
+
+            // Create download link
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = doc.filename;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
             URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Erreur lors du téléchargement');
         }
     };
 
-    const handleUploadSuccess = (newDoc) => {
-        // Add to localStorage
-        const stored = localStorage.getItem('bet_documents');
-        const allDocs = stored ? JSON.parse(stored) : [];
-        allDocs.push(newDoc);
-        localStorage.setItem('bet_documents', JSON.stringify(allDocs));
+    const handleDeleteDocument = async (docId) => {
+        if (!confirm('Êtes-vous sûr de vouloir supprimer ce document?')) {
+            return;
+        }
 
+        try {
+            const response = await fetch(`/api/documents/upload?id=${docId}`, {
+                method: 'DELETE',
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Erreur lors de la suppression');
+            }
+
+            // Refresh documents list
+            fetchDocuments();
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert(error.message);
+        }
+    };
+
+    const handleUploadSuccess = () => {
         // Refresh list
         fetchDocuments();
     };
@@ -202,6 +210,19 @@ export default function DocumentsPage({ params }) {
                                                         >
                                                             ⬇️ Télécharger
                                                         </button>
+                                                        {hasPermission(user?.role, 'DELETE_DOCUMENT') && (
+                                                            <button
+                                                                className="btn btn-sm"
+                                                                onClick={() => handleDeleteDocument(doc.id)}
+                                                                title="Supprimer le document"
+                                                                style={{
+                                                                    background: 'var(--color-danger)',
+                                                                    color: 'white',
+                                                                }}
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

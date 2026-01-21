@@ -28,11 +28,17 @@ export default function UploadDocumentModal({ isOpen, onClose, projectId, onSucc
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            setFormData({ ...formData, file });
+            // Auto-fill title if empty
+            if (!formData.title) {
+                const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+                setFormData({ ...formData, file, title: nameWithoutExt });
+            } else {
+                setFormData({ ...formData, file });
+            }
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!formData.file) {
@@ -43,27 +49,33 @@ export default function UploadDocumentModal({ isOpen, onClose, projectId, onSucc
         setLoading(true);
         setError('');
 
-        // Read file as base64
-        const reader = new FileReader();
+        try {
+            // Prepare FormData for file upload
+            const uploadData = new FormData();
+            uploadData.append('file', formData.file);
+            uploadData.append('projectId', projectId);
+            uploadData.append('path', formData.folder);
+            uploadData.append('lot', formData.lot);
+            uploadData.append('title', formData.title);
+            uploadData.append('version', '1.0');
 
-        reader.onload = () => {
-            const newDocument = {
-                id: Date.now().toString(),
-                title: formData.title,
-                filename: formData.file.name,
-                folder: formData.folder,
-                lot: formData.lot,
-                description: formData.description,
-                fileSize: formData.file.size,
-                mimeType: formData.file.type,
-                version: '1.0',
-                uploadedBy: { name: 'Marie Dupont' },
-                uploadedAt: new Date().toISOString(),
-                fileData: reader.result, // Base64 file data
-            };
+            // Upload to API
+            const response = await fetch('/api/documents/upload', {
+                method: 'POST',
+                body: uploadData,
+            });
 
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur lors de l\'upload');
+            }
+
+            console.log('Document uploaded successfully:', data.document);
+
+            // Call success callback
             if (onSuccess) {
-                onSuccess(newDocument);
+                onSuccess(data.document);
             }
 
             // Reset form
@@ -75,17 +87,17 @@ export default function UploadDocumentModal({ isOpen, onClose, projectId, onSucc
                 file: null,
             });
 
-            setLoading(false);
+            // Reset file input
+            const fileInput = document.querySelector('input[type="file"]');
+            if (fileInput) fileInput.value = '';
+
             onClose();
-        };
-
-        reader.onerror = () => {
-            setError('Erreur lors de la lecture du fichier');
+        } catch (error) {
+            console.error('Upload error:', error);
+            setError(error.message || 'Erreur lors du téléchargement');
+        } finally {
             setLoading(false);
-        };
-
-        // Read as base64
-        reader.readAsDataURL(formData.file);
+        }
     };
 
     return (
