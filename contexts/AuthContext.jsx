@@ -58,29 +58,23 @@ export function AuthProvider({ children }) {
 
     async function loadUserData(authUser) {
         try {
+            // Skip if user data is already loaded for this email
+            if (user && user.email === authUser.email) {
+                console.log('User data already loaded, skipping fetch');
+                return;
+            }
+
             console.log('Loading user data for:', authUser.email);
 
-            // Try with 'User' table (Prisma default)
-            let { data, error } = await supabase
+            // Single optimized query to User table
+            const { data, error } = await supabase
                 .from('User')
-                .select('*')
+                .select('id, email, name, role, lot, createdAt, updatedAt')
                 .eq('email', authUser.email)
                 .single();
 
-            // If error, try lowercase 'user' table
-            if (error && error.code === '42P01') {
-                console.log('Trying lowercase table name...');
-                const result = await supabase
-                    .from('user')
-                    .select('*')
-                    .eq('email', authUser.email)
-                    .single();
-                data = result.data;
-                error = result.error;
-            }
-
             if (error) {
-                console.error('Error loading user data:', error.message, error.code, error.details);
+                console.error('Error loading user data:', error.message);
                 // If user doesn't exist in DB, sign out
                 await supabase.auth.signOut();
                 setUser(null);
