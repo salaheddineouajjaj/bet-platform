@@ -7,15 +7,18 @@ export async function GET(request) {
     try {
         const user = await requireAuth(request);
 
-        // Filter projects based on user role
+        // Filter projects based on user role and assignments
         let whereClause = {};
 
-        if (user.role === 'REFERENT_LOT' || user.role === 'CONTRIBUTEUR') {
-            // Only show projects where user has deliverables in their lot
+        if (user.role === 'CHEF_DE_PROJET') {
+            // Chef de Projet sees ALL projects
+            whereClause = {};
+        } else {
+            // Other users see only projects they're assigned to
             whereClause = {
-                deliverables: {
+                assignedUsers: {
                     some: {
-                        lot: user.lot,
+                        id: user.id,
                     },
                 },
             };
@@ -28,6 +31,15 @@ export async function GET(request) {
                     select: {
                         name: true,
                         email: true,
+                    },
+                },
+                assignedUsers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                        lot: true,
                     },
                 },
                 _count: {
@@ -70,7 +82,7 @@ export async function POST(request) {
             );
         }
 
-        // Create project
+        // Create project and automatically assign creator
         const project = await prisma.project.create({
             data: {
                 name: body.name,
@@ -83,12 +95,25 @@ export async function POST(request) {
                 startDate: body.startDate ? new Date(body.startDate) : null,
                 endDate: body.endDate ? new Date(body.endDate) : null,
                 createdById: user.id,
+                // Auto-assign creator to project
+                assignedUsers: {
+                    connect: { id: user.id },
+                },
             },
             include: {
                 createdBy: {
                     select: {
                         name: true,
                         email: true,
+                    },
+                },
+                assignedUsers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                        lot: true,
                     },
                 },
             },

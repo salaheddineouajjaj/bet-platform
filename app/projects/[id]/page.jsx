@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { use } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
+import AssignUserModal from '@/components/AssignUserModal/AssignUserModal';
+import { hasPermission } from '@/lib/permissions';
 import styles from './overview.module.css';
 
 export default function ProjectOverviewPage({ params }) {
@@ -11,6 +13,7 @@ export default function ProjectOverviewPage({ params }) {
     const { user } = useAuth();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showAssignModal, setShowAssignModal] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -131,36 +134,80 @@ export default function ProjectOverviewPage({ params }) {
                                 </div>
                             </div>
 
-                            {/* Contacts */}
+                            {/* Contacts & Rôles - Assigned Users */}
                             <div className={styles.section} style={{ marginTop: 'var(--spacing-xl)' }}>
                                 <div className={styles.sectionHeader}>
-                                    <h2 className={styles.sectionTitle}>👥 Contacts & Rôles</h2>
+                                    <h2 className={styles.sectionTitle}>👥 Équipe du Projet</h2>
+                                    {hasPermission(user?.role, 'CREATE_PROJECT') && (
+                                        <button
+                                            className="btn btn-sm btn-primary"
+                                            onClick={() => setShowAssignModal(true)}
+                                        >
+                                            ⚙️ Gérer l'équipe
+                                        </button>
+                                    )}
                                 </div>
                                 <table className={styles.contactsTable}>
                                     <thead>
                                         <tr>
                                             <th>Nom</th>
                                             <th>Rôle</th>
+                                            <th>Lot</th>
                                             <th>Email</th>
-                                            <th>Téléphone</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {project.contacts && project.contacts.length > 0 ? (
-                                            project.contacts.map((contact, index) => (
-                                                <tr key={index}>
-                                                    <td><strong>{contact.name}</strong></td>
-                                                    <td>{contact.role}</td>
-                                                    <td>{contact.email}</td>
-                                                    <td>{contact.phone || '-'}</td>
-                                                </tr>
-                                            ))
+                                        {/* Project Creator */}
+                                        <tr style={{ background: 'rgba(99, 102, 241, 0.05)' }}>
+                                            <td><strong>{project.createdBy?.name || 'Administrateur'}</strong></td>
+                                            <td>
+                                                <span className="badge badge-purple">
+                                                    👑 Créateur du Projet
+                                                </span>
+                                            </td>
+                                            <td>-</td>
+                                            <td>{project.createdBy?.email}</td>
+                                        </tr>
+
+                                        {/* Assigned Users */}
+                                        {project.assignedUsers && project.assignedUsers.length > 0 ? (
+                                            project.assignedUsers.map((assignedUser) => {
+                                                const getRoleBadge = (role) => {
+                                                    const badges = {
+                                                        CHEF_DE_PROJET: { label: 'Chef de Projet', color: 'purple' },
+                                                        REFERENT_LOT: { label: 'Référent Lot', color: 'blue' },
+                                                        CONTRIBUTEUR: { label: 'Contributeur', color: 'green' },
+                                                        EXTERNE: { label: 'Externe', color: 'gray' },
+                                                    };
+                                                    return badges[role] || { label: role, color: 'gray' };
+                                                };
+
+                                                const roleBadge = getRoleBadge(assignedUser.role);
+
+                                                return (
+                                                    <tr key={assignedUser.id}>
+                                                        <td><strong>{assignedUser.name}</strong></td>
+                                                        <td>
+                                                            <span className={`badge badge-${roleBadge.color}`}>
+                                                                {roleBadge.label}
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            {assignedUser.lot ? (
+                                                                <span className="badge badge-blue">{assignedUser.lot}</span>
+                                                            ) : (
+                                                                <span style={{ color: 'var(--color-gray-400)' }}>-</span>
+                                                            )}
+                                                        </td>
+                                                        <td>{assignedUser.email}</td>
+                                                    </tr>
+                                                );
+                                            })
                                         ) : (
                                             <tr>
-                                                <td><strong>{project.createdBy?.name || 'Administrateur'}</strong></td>
-                                                <td>Créateur du Projet</td>
-                                                <td>{project.createdBy?.email}</td>
-                                                <td>-</td>
+                                                <td colSpan="4" style={{ textAlign: 'center', color: 'var(--color-gray-400)', fontStyle: 'italic', padding: '2rem' }}>
+                                                    Aucun utilisateur assigné. L'admin peut assigner des utilisateurs via l'interface de gestion.
+                                                </td>
                                             </tr>
                                         )}
                                     </tbody>
@@ -301,6 +348,18 @@ export default function ProjectOverviewPage({ params }) {
                     </div>
                 </div>
             </div>
+
+            {/* Assign User Modal */}
+            <AssignUserModal
+                isOpen={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                projectId={id}
+                currentAssignedUsers={project?.assignedUsers || []}
+                onSuccess={() => {
+                    setShowAssignModal(false);
+                    fetchProject(); // Refresh project data
+                }}
+            />
         </div>
     );
 }

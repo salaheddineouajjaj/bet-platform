@@ -32,6 +32,7 @@ model User {
 
   // Relations
   createdProjects    Project[]         @relation("ProjectCreator")
+  assignedProjects   Project[]         @relation("ProjectAssignments")
   deliverables       Deliverable[]     @relation("DeliverableCreator")
   documents          Document[]        @relation("DocumentUploader")
   remarks            Remark[]          @relation("RemarkCreator")
@@ -77,6 +78,7 @@ model Project {
   updatedAt   DateTime     @updatedAt
 
   // Relations
+  assignedUsers User[]            @relation("ProjectAssignments")
   contacts     ProjectContact[]
   phases       PhaseDate[]
   deliverables Deliverable[]
