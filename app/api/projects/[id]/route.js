@@ -14,6 +14,15 @@ export async function GET(request, context) {
                 createdBy: {
                     select: { name: true, email: true },
                 },
+                assignedUsers: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true,
+                        lot: true,
+                    },
+                },
                 contacts: true,
                 risks: {
                     where: { status: { in: ['OPEN', 'MITIGATING'] } },

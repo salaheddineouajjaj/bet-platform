@@ -355,9 +355,10 @@ export default function ProjectOverviewPage({ params }) {
                 onClose={() => setShowAssignModal(false)}
                 projectId={id}
                 currentAssignedUsers={project?.assignedUsers || []}
-                onSuccess={() => {
-                    setShowAssignModal(false);
-                    fetchProject(); // Refresh project data
+                onSuccess={async () => {
+                    // Refresh project data without closing modal
+                    // This allows users to see immediate feedback
+                    await fetchProject();
                 }}
             />
         </div>

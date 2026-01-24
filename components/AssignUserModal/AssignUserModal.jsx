@@ -7,6 +7,7 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
         if (isOpen) {
@@ -32,26 +33,38 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
 
     const handleAssign = async (userId) => {
         try {
+            console.log('[MODAL] Starting assignment', { projectId, userId });
             setLoading(true);
             setError('');
+            setSuccessMessage('');
 
+            console.log('[MODAL] Sending POST request...');
             const response = await fetch(`/api/projects/${projectId}/assign`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId }),
             });
 
+            console.log('[MODAL] Response received:', response.status);
             const data = await response.json();
+            console.log('[MODAL] Response data:', data);
 
             if (!response.ok) {
                 throw new Error(data.error || 'Erreur lors de l\'assignation');
             }
 
+            console.log('[MODAL] Assignment successful!');
+            setSuccessMessage(data.message || '✓ Utilisateur assigné avec succès!');
+
+            // Immediately refresh parent to update assignedUsers list
             if (onSuccess) {
-                onSuccess();
+                await onSuccess();
             }
+
+            // Clear success message after 3 seconds
+            setTimeout(() => setSuccessMessage(''), 3000);
         } catch (error) {
-            console.error('Assign error:', error);
+            console.error('[MODAL] Assign error:', error);
             setError(error.message);
         } finally {
             setLoading(false);
@@ -73,8 +86,9 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
                 throw new Error(data.error || 'Erreur lors du retrait');
             }
 
+            // Immediately refresh parent to update assignedUsers list
             if (onSuccess) {
-                onSuccess();
+                await onSuccess();
             }
         } catch (error) {
             console.error('Unassign error:', error);
@@ -109,6 +123,19 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
                     marginBottom: '1rem',
                 }}>
                     {error}
+                </div>
+            )}
+
+            {successMessage && (
+                <div style={{
+                    background: 'var(--color-success-light)',
+                    color: 'var(--color-success)',
+                    padding: '1rem',
+                    borderRadius: 'var(--radius-md)',
+                    marginBottom: '1rem',
+                    fontWeight: 600,
+                }}>
+                    {successMessage}
                 </div>
             )}
 
@@ -151,6 +178,7 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
                                         </div>
                                     </div>
                                     <button
+                                        type="button"
                                         className={`btn btn-sm ${assigned ? 'btn-danger' : 'btn-primary'}`}
                                         onClick={() => assigned ? handleUnassign(user.id) : handleAssign(user.id)}
                                         disabled={loading}
@@ -166,6 +194,7 @@ export default function AssignUserModal({ isOpen, onClose, projectId, currentAss
 
             <div style={{ marginTop: 'var(--spacing-lg)', paddingTop: 'var(--spacing-lg)', borderTop: '1px solid var(--color-border)' }}>
                 <button
+                    type="button"
                     className="btn btn-ghost"
                     onClick={onClose}
                     style={{ width: '100%' }}
