@@ -5,6 +5,7 @@ import { use } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Navigation from '@/components/Navigation/Navigation';
 import AssignUserModal from '@/components/AssignUserModal/AssignUserModal';
+import PhaseChangeModal from '@/components/PhaseChangeModal/PhaseChangeModal';
 import { hasPermission } from '@/lib/permissions';
 import styles from './overview.module.css';
 
@@ -14,6 +15,8 @@ export default function ProjectOverviewPage({ params }) {
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showPhaseModal, setShowPhaseModal] = useState(false);
+    const [phaseChangeLoading, setPhaseChangeLoading] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -58,7 +61,7 @@ export default function ProjectOverviewPage({ params }) {
         return phases[phase] || phase;
     };
 
-    const handleAdvancePhase = async () => {
+    const handleAdvancePhase = () => {
         const phasesOrder = ['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'];
         const currentIndex = phasesOrder.indexOf(project.phase);
 
@@ -67,12 +70,16 @@ export default function ProjectOverviewPage({ params }) {
             return;
         }
 
-        const nextPhase = phasesOrder[currentIndex + 1];
-        const confirmMessage = `Voulez-vous faire passer le projet à la phase:\n\n${getPhaseLabel(nextPhase)}?\n\nCette action sera enregistrée dans l'historique.`;
+        // Open modal instead of confirm dialog
+        setShowPhaseModal(true);
+    };
 
-        if (!confirm(confirmMessage)) {
-            return;
-        }
+    const confirmPhaseChange = async () => {
+        const phasesOrder = ['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'];
+        const currentIndex = phasesOrder.indexOf(project.phase);
+        const nextPhase = phasesOrder[currentIndex + 1];
+
+        setPhaseChangeLoading(true);
 
         try {
             const response = await fetch(`/api/projects/${id}/phase`, {
@@ -84,16 +91,24 @@ export default function ProjectOverviewPage({ params }) {
             const data = await response.json();
 
             if (response.ok) {
-                alert(`✅ ${data.message}`);
-                fetchProject(); // Refresh project data
+                setShowPhaseModal(false);
+                await fetchProject(); // Refresh project data
+
+                // Show success notification (you can replace with toast later)
+                setTimeout(() => {
+                    alert(`✅ ${data.message}`);
+                }, 300);
             } else {
                 alert(`❌ Erreur: ${data.error}`);
+                setPhaseChangeLoading(false);
             }
         } catch (error) {
             console.error('Phase change error:', error);
             alert('❌ Erreur lors du changement de phase');
+            setPhaseChangeLoading(false);
         }
     };
+
 
 
     if (loading) {
@@ -407,6 +422,25 @@ export default function ProjectOverviewPage({ params }) {
                     await fetchProject();
                 }}
             />
+
+            {/* Phase Change Modal */}
+            {project && (
+                <PhaseChangeModal
+                    isOpen={showPhaseModal}
+                    onClose={() => {
+                        setShowPhaseModal(false);
+                        setPhaseChangeLoading(false);
+                    }}
+                    currentPhase={project.phase}
+                    nextPhase={(() => {
+                        const phasesOrder = ['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'];
+                        const currentIndex = phasesOrder.indexOf(project.phase);
+                        return phasesOrder[currentIndex + 1] || project.phase;
+                    })()}
+                    onConfirm={confirmPhaseChange}
+                    loading={phaseChangeLoading}
+                />
+            )}
         </div>
     );
 }
