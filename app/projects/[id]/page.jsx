@@ -58,6 +58,44 @@ export default function ProjectOverviewPage({ params }) {
         return phases[phase] || phase;
     };
 
+    const handleAdvancePhase = async () => {
+        const phasesOrder = ['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'];
+        const currentIndex = phasesOrder.indexOf(project.phase);
+
+        if (currentIndex === -1 || currentIndex >= phasesOrder.length - 1) {
+            alert('Le projet est déjà à la dernière phase');
+            return;
+        }
+
+        const nextPhase = phasesOrder[currentIndex + 1];
+        const confirmMessage = `Voulez-vous faire passer le projet à la phase:\n\n${getPhaseLabel(nextPhase)}?\n\nCette action sera enregistrée dans l'historique.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/projects/${id}/phase`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phase: nextPhase }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(`✅ ${data.message}`);
+                fetchProject(); // Refresh project data
+            } else {
+                alert(`❌ Erreur: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Phase change error:', error);
+            alert('❌ Erreur lors du changement de phase');
+        }
+    };
+
+
     if (loading) {
         return (
             <div className={styles.page}>
@@ -315,6 +353,14 @@ export default function ProjectOverviewPage({ params }) {
                 <div className={styles.section}>
                     <div className={styles.sectionHeader}>
                         <h2 className={styles.sectionTitle}>📊 Timeline du Projet</h2>
+                        {hasPermission(user?.role, 'CREATE_PROJECT') && project.phase !== 'AOR' && (
+                            <button
+                                className="btn btn-sm btn-primary"
+                                onClick={handleAdvancePhase}
+                            >
+                                ➡️ Phase suivante
+                            </button>
+                        )}
                     </div>
                     <div className={styles.timeline}>
                         {['ESQUISSE', 'APS', 'APD', 'PRO', 'DCE', 'ACT', 'DET', 'AOR'].map((phaseCode) => {
