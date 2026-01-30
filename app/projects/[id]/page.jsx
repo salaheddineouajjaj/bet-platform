@@ -343,7 +343,7 @@ export default function ProjectOverviewPage({ params }) {
                         {/* Latest Decisions */}
                         <div className={styles.section} style={{ marginTop: 'var(--spacing-xl)' }}>
                             <div className={styles.sectionHeader}>
-                                <h2 className={styles.sectionTitle}>✅ Dernières Décisions</h2>
+                                <h2 className={styles.sectionTitle}>✅ Dernières Décisions yousseffffffff</h2>
                                 <a href={`/projects/${id}/decisions`} className="btn btn-sm btn-ghost">Voir tout</a>
                             </div>
                             <div className={styles.decisionsList}>

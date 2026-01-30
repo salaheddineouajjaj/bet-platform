@@ -60,11 +60,12 @@ export function AuthProvider({ children }) {
         try {
             // Skip if user data is already loaded for this email
             if (user && user.email === authUser.email) {
-                console.log('User data already loaded, skipping fetch');
+                console.log('[AUTH] User data already loaded, skipping fetch');
                 return;
             }
 
-            console.log('Loading user data for:', authUser.email);
+            console.log('[AUTH] Loading user data for:', authUser.email);
+            console.log('[AUTH] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
             // Single optimized query to User table
             const { data, error } = await supabase
@@ -74,7 +75,7 @@ export function AuthProvider({ children }) {
                 .single();
 
             if (error) {
-                console.error('Error loading user data:', error.message);
+                console.error('[AUTH] Error loading user data:', error.message, error);
                 // If user doesn't exist in DB, sign out
                 await supabase.auth.signOut();
                 setUser(null);
@@ -82,16 +83,16 @@ export function AuthProvider({ children }) {
             }
 
             if (!data) {
-                console.error('No user found for email:', authUser.email);
+                console.error('[AUTH] No user found for email:', authUser.email);
                 await supabase.auth.signOut();
                 setUser(null);
                 return;
             }
 
+            console.log('[AUTH] User loaded successfully:', data.email, data.role);
             setUser(data);
-            console.log('User loaded successfully:', data.email, data.role);
         } catch (error) {
-            console.error('Error in loadUserData:', error);
+            console.error('[AUTH] Exception in loadUserData:', error);
             setUser(null);
         }
     }

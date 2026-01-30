@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation/Navigation';
 import NewProjectModal from '@/components/NewProjectModal/NewProjectModal';
+import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasPermission } from '@/lib/permissions';
 import styles from './projects.module.css';
@@ -98,7 +99,7 @@ export default function ProjectsPage() {
     };
 
     if (!user) {
-        return <div>Loading...</div>;
+        return <LoadingSpinner fullScreen message="Vérification de l'authentification..." />;
     }
 
     return (
