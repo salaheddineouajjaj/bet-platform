@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -11,6 +11,8 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
+    const isLoadingUser = useRef(false);
+    const cachedUserEmail = useRef(null);
 
     useEffect(() => {
         // Check active session
@@ -56,16 +58,23 @@ export function AuthProvider({ children }) {
         }
     }
 
-    async function loadUserData(authUser) {
-        try {
-            // Skip if user data is already loaded for this email
-            if (user && user.email === authUser.email) {
-                console.log('[AUTH] User data already loaded, skipping fetch');
-                return;
-            }
 
+    async function loadUserData(authUser) {
+        // Prevent multiple simultaneous calls
+        if (isLoadingUser.current) {
+            console.log('[AUTH] Already loading user, skipping...');
+            return;
+        }
+
+        // Check if we already loaded this user
+        if (cachedUserEmail.current === authUser.email && user) {
+            console.log('[AUTH] User already loaded from cache:', authUser.email);
+            return;
+        }
+
+        try {
+            isLoadingUser.current = true;
             console.log('[AUTH] Loading user data for:', authUser.email);
-            console.log('[AUTH] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
 
             // Single optimized query to User table
             const { data, error } = await supabase
@@ -79,6 +88,7 @@ export function AuthProvider({ children }) {
                 // If user doesn't exist in DB, sign out
                 await supabase.auth.signOut();
                 setUser(null);
+                cachedUserEmail.current = null;
                 return;
             }
 
@@ -86,14 +96,19 @@ export function AuthProvider({ children }) {
                 console.error('[AUTH] No user found for email:', authUser.email);
                 await supabase.auth.signOut();
                 setUser(null);
+                cachedUserEmail.current = null;
                 return;
             }
 
             console.log('[AUTH] User loaded successfully:', data.email, data.role);
             setUser(data);
+            cachedUserEmail.current = data.email;
         } catch (error) {
             console.error('[AUTH] Exception in loadUserData:', error);
             setUser(null);
+            cachedUserEmail.current = null;
+        } finally {
+            isLoadingUser.current = false;
         }
     }
 
