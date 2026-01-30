@@ -11,121 +11,112 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
-    const isLoadingUser = useRef(false);
-    const cachedUserEmail = useRef(null);
+    const initialized = useRef(false);
+    const loadingPromise = useRef(null);
+
+    // Hard timeout safety: ensure loading is never stuck forever
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (loading) {
+                console.warn('[AUTH] ⚠️ Loading safety timeout triggered');
+                setLoading(false);
+            }
+        }, 6000);
+        return () => clearTimeout(timer);
+    }, [loading]);
 
     useEffect(() => {
-        // Handle auth state changes
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[AUTH] Auth event:', event, session?.user?.email);
+        if (initialized.current) return;
+        initialized.current = true;
 
-            if (session?.user) {
-                await loadUserData(session.user);
-            } else {
+        async function handleUserSession(sessionUser) {
+            if (!sessionUser) {
                 setUser(null);
-                cachedUserEmail.current = null;
                 setLoading(false);
+                return;
+            }
 
-                // Redirect if not on login/auth pages
-                if (!pathname?.startsWith('/auth/login') && !pathname?.startsWith('/auth/callback')) {
-                    router.push('/auth/login');
+            // Reuse existing loading promise if one exists
+            if (loadingPromise.current) return loadingPromise.current;
+
+            loadingPromise.current = (async () => {
+                try {
+                    console.log('[AUTH] Syncing user:', sessionUser.email);
+
+                    // Direct query to database
+                    const { data, error } = await supabase
+                        .from('User')
+                        .select('id, email, name, role, lot')
+                        .eq('email', sessionUser.email)
+                        .single();
+
+                    if (error && error.code === 'PGRST116') {
+                        // User doesn't exist, create it
+                        console.log('[AUTH] Creating new user record...');
+                        const { data: newUser, error: createError } = await supabase
+                            .from('User')
+                            .insert({
+                                email: sessionUser.email,
+                                name: sessionUser.user_metadata?.full_name || sessionUser.email.split('@')[0],
+                                role: 'CONTRIBUTEUR',
+                            })
+                            .select()
+                            .single();
+
+                        if (!createError) setUser(newUser);
+                    } else if (!error && data) {
+                        setUser(data);
+                    }
+                } catch (err) {
+                    console.error('[AUTH] Load error:', err);
+                } finally {
+                    setLoading(false);
+                    loadingPromise.current = null;
                 }
+            })();
+
+            return loadingPromise.current;
+        }
+
+        // 1. Check current session immediately
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                handleUserSession(session.user);
+            } else {
+                setLoading(false);
             }
         });
 
-        // Check session immediately on mount
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
+        // 2. Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('[AUTH] Event:', event);
+            if (session?.user) {
+                handleUserSession(session.user);
+            } else if (event === 'SIGNED_OUT') {
+                setUser(null);
                 setLoading(false);
+                if (!pathname?.startsWith('/auth/login')) {
+                    router.push('/auth/login');
+                }
             }
         });
 
         return () => subscription.unsubscribe();
     }, [pathname, router]);
 
-    async function loadUserData(authUser) {
-        // Prevent multiple simultaneous calls for the same user
-        if (isLoadingUser.current && cachedUserEmail.current === authUser.email) {
-            console.log('[AUTH] Already loading same user, skipping...');
-            return;
-        }
-
-        try {
-            isLoadingUser.current = true;
-            cachedUserEmail.current = authUser.email;
-            console.log('[AUTH] Loading user data for:', authUser.email);
-
-            const { data, error } = await supabase
-                .from('User')
-                .select('id, email, name, role, lot, createdAt, updatedAt')
-                .eq('email', authUser.email)
-                .single();
-
-            // If user doesn't exist, create them automatically
-            if (error && error.code === 'PGRST116') {
-                console.log('[AUTH] User not found in database, creating:', authUser.email);
-
-                const { data: newUser, error: createError } = await supabase
-                    .from('User')
-                    .insert({
-                        email: authUser.email,
-                        name: authUser.user_metadata?.full_name || authUser.email.split('@')[0],
-                        role: 'CONTRIBUTEUR',
-                        lot: null,
-                    })
-                    .select()
-                    .single();
-
-                if (createError) {
-                    console.error('[AUTH] Error creating user:', createError);
-                    await supabase.auth.signOut();
-                    setUser(null);
-                } else {
-                    console.log('[AUTH] User created successfully:', newUser.email, newUser.role);
-                    setUser(newUser);
-                }
-            } else if (error) {
-                console.error('[AUTH] Error loading user data:', error.message);
-                setUser(null);
-            } else {
-                console.log('[AUTH] User loaded successfully:', data.email, data.role);
-                setUser(data);
-            }
-        } catch (error) {
-            console.error('[AUTH] Exception in loadUserData:', error);
-            setUser(null);
-        } finally {
-            isLoadingUser.current = false;
-            setLoading(false);
-        }
-    }
-
     const value = {
         user,
         loading,
-        signIn: async (email, password) => {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            return data;
-        },
+        signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
         signOut: async () => {
             await supabase.auth.signOut();
             setUser(null);
-            cachedUserEmail.current = null;
             router.push('/auth/login');
         },
-        signInWithGitHub: async () => {
-            const { data, error } = await supabase.auth.signInWithOAuth({
-                provider: 'github',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
-                },
-            });
-            if (error) throw error;
-            return data;
-        },
+        signInWithGitHub: () => supabase.auth.signInWithOAuth({
+            provider: 'github',
+            options: { redirectTo: `${window.location.origin}/auth/callback` }
+        }),
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
