@@ -52,18 +52,22 @@ export function AuthProvider({ children }) {
 
             if (session?.user) {
                 console.log('[AUTH] Initial session found for:', session.user.email);
-                // Don't call loadUserData here - let onAuthStateChange handle it
-                // This prevents double calls on page refresh
+                // onAuthStateChange will handle loading the user
             } else {
                 console.log('[AUTH] No initial session');
                 setUser(null);
-                setLoading(false);
             }
         } catch (error) {
             console.error('[AUTH] Check session error:', error);
             setUser(null);
-            setLoading(false);
         }
+        // Always stop loading - onAuthStateChange will handle user loading
+        // This timeout ensures onAuthStateChange has time to fire
+        setTimeout(() => {
+            if (!user) {
+                setLoading(false);
+            }
+        }, 1000);
     }
 
 
