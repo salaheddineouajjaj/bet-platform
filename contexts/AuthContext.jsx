@@ -83,9 +83,45 @@ export function AuthProvider({ children }) {
                 .eq('email', authUser.email)
                 .single();
 
+            // If user doesn't exist, create them automatically
+            if (error && error.code === 'PGRST116') {
+                console.log('[AUTH] User not found in database, creating:', authUser.email);
+
+                try {
+                    const { data: newUser, error: createError } = await supabase
+                        .from('User')
+                        .insert({
+                            email: authUser.email,
+                            name: authUser.user_metadata?.full_name || authUser.email.split('@')[0],
+                            role: 'CONTRIBUTEUR', // Default role
+                            lot: null,
+                        })
+                        .select()
+                        .single();
+
+                    if (createError) {
+                        console.error('[AUTH] Error creating user:', createError);
+                        await supabase.auth.signOut();
+                        setUser(null);
+                        cachedUserEmail.current = null;
+                        return;
+                    }
+
+                    console.log('[AUTH] User created successfully:', newUser.email, newUser.role);
+                    setUser(newUser);
+                    cachedUserEmail.current = newUser.email;
+                    return;
+                } catch (createErr) {
+                    console.error('[AUTH] Exception creating user:', createErr);
+                    await supabase.auth.signOut();
+                    setUser(null);
+                    cachedUserEmail.current = null;
+                    return;
+                }
+            }
+
             if (error) {
                 console.error('[AUTH] Error loading user data:', error.message, error);
-                // If user doesn't exist in DB, sign out
                 await supabase.auth.signOut();
                 setUser(null);
                 cachedUserEmail.current = null;

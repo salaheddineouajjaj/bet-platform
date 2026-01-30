@@ -98,8 +98,34 @@ export default function ProjectsPage() {
         return colors[phase] || 'blue';
     };
 
-    if (!user) {
+
+    if (loading) {
         return <LoadingSpinner fullScreen message="Vérification de l'authentification..." />;
+    }
+
+    if (!user) {
+        return (
+            <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '100vh',
+                padding: '2rem',
+                textAlign: 'center',
+            }}>
+                <h2 style={{ marginBottom: '1rem' }}>❌ Erreur d'authentification</h2>
+                <p style={{ marginBottom: '2rem', color: 'var(--color-text-secondary)' }}>
+                    Votre compte n'a pas pu être chargé. Veuillez contacter un administrateur.
+                </p>
+                <button
+                    className="btn btn-primary"
+                    onClick={() => window.location.href = '/auth/login'}
+                >
+                    Retour à la connexion
+                </button>
+            </div>
+        );
     }
 
     return (
