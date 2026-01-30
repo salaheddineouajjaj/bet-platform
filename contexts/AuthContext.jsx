@@ -59,6 +59,7 @@ export function AuthProvider({ children }) {
     }
 
 
+
     async function loadUserData(authUser) {
         // Prevent multiple simultaneous calls
         if (isLoadingUser.current) {
@@ -71,6 +72,12 @@ export function AuthProvider({ children }) {
             console.log('[AUTH] User already loaded from cache:', authUser.email);
             return;
         }
+
+        // Safety timeout: reset loading flag after 10 seconds
+        const timeoutId = setTimeout(() => {
+            console.warn('[AUTH] Loading timeout - resetting loading flag');
+            isLoadingUser.current = false;
+        }, 10000);
 
         try {
             isLoadingUser.current = true;
@@ -136,6 +143,7 @@ export function AuthProvider({ children }) {
                 return;
             }
 
+
             console.log('[AUTH] User loaded successfully:', data.email, data.role);
             setUser(data);
             cachedUserEmail.current = data.email;
@@ -144,6 +152,7 @@ export function AuthProvider({ children }) {
             setUser(null);
             cachedUserEmail.current = null;
         } finally {
+            clearTimeout(timeoutId);
             isLoadingUser.current = false;
         }
     }
