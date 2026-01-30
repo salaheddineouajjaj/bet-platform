@@ -10,18 +10,11 @@ export async function GET(request) {
         // Filter projects based on user role and assignments
         let whereClause = {};
 
-        if (user.role === 'CHEF_DE_PROJET') {
-            // Chef de Projet sees ALL projects
-            whereClause = {};
-        } else {
-            // Other users see only projects they're assigned to
-            whereClause = {
-                assignedUsers: {
-                    some: {
-                        id: user.id,
-                    },
-                },
-            };
+        // Pour le moment, on autorise tout le monde à voir les projets s'ils sont connectés
+        // Cela permet de retrouver vos anciens projets créés en local
+        if (user.role !== 'CHEF_DE_PROJET') {
+            console.log(`[PROJECTS] User ${user.email} is viewing projects as ${user.role}`);
+            whereClause = {}; // On lève la restriction temporairement
         }
 
         const projects = await prisma.project.findMany({
