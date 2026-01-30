@@ -15,19 +15,20 @@ export function AuthProvider({ children }) {
     const cachedUserEmail = useRef(null);
 
     useEffect(() => {
-        // Check active session
+        // Check active session ONCE on mount
         checkSession();
 
-        // Listen for auth changes
+        // Listen for auth changes (handles all subsequent auth events)
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth event:', event, session?.user?.email);
+            console.log('[AUTH] Auth event:', event, session?.user?.email);
 
             if (session?.user) {
                 await loadUserData(session.user);
             } else {
                 setUser(null);
+                cachedUserEmail.current = null;
                 // Only redirect to login if not already there
                 if (!pathname?.startsWith('/auth/login')) {
                     router.push('/auth/login');
@@ -41,19 +42,26 @@ export function AuthProvider({ children }) {
 
     async function checkSession() {
         try {
+            console.log('[AUTH] Checking initial session...');
             const { data: { session }, error } = await supabase.auth.getSession();
 
-            if (error) throw error;
+            if (error) {
+                console.error('[AUTH] Session error:', error);
+                throw error;
+            }
 
             if (session?.user) {
-                await loadUserData(session.user);
+                console.log('[AUTH] Initial session found for:', session.user.email);
+                // Don't call loadUserData here - let onAuthStateChange handle it
+                // This prevents double calls on page refresh
             } else {
+                console.log('[AUTH] No initial session');
                 setUser(null);
+                setLoading(false);
             }
         } catch (error) {
-            console.error('Session error:', error);
+            console.error('[AUTH] Check session error:', error);
             setUser(null);
-        } finally {
             setLoading(false);
         }
     }
