@@ -27,17 +27,25 @@ export default function ProjectsPage() {
         try {
             setLoading(true);
 
-            // REAL API CALL to database
-            const response = await fetch('/api/projects');
+            // REAL API CALL with Auth Header
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const response = await fetch('/api/projects', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const data = await response.json();
 
             if (!response.ok) {
+                console.error('[PROJECTS] API Error:', data);
                 throw new Error(data.error || 'Erreur de chargement');
             }
 
             setProjects(data.projects || []);
         } catch (error) {
-            console.error('Error fetching projects:', error);
+            console.error('[PROJECTS] Fetch error:', error);
             setProjects([]);
         } finally {
             setLoading(false);
