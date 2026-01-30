@@ -10,12 +10,14 @@
 ### 1. Variables d'environnement Vercel
 Assurez-vous que toutes les variables suivantes sont configurées dans Vercel Dashboard:
 
+```bash
+DATABASE_URL="postgresql://YOUR_USER:YOUR_PASSWORD@YOUR_HOST:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your_anon_key_here"
+SUPABASE_SERVICE_ROLE_KEY="your_service_role_key_here"
 ```
-DATABASE_URL=postgresql://postgres.arxwxcoetubpsbhvjbap:Ss0646453558@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
-NEXT_PUBLIC_SUPABASE_URL=https://arxwxcoetubpsbhvjbap.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHd4Y29ldHVicHNiaHZqYmFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxOTY3MzQsImV4cCI6MjA4Mzc3MjczNH0.eBu1FdozPG9oh4w1hoTrFIwtgHydT4oSICvzvtLgcBg
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeHd4Y29ldHVicHNiaHZqYmFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2ODE5NjczNCwiZXhwIjoyMDgzNzcyNzM0fQ.U9s80WeF6fZpPFqn6vDV6Ut3aPrhCUkxKXSdUVe84qw
-```
+
+⚠️ **IMPORTANT:** Ne commitez JAMAIS ces valeurs réelles! Utilisez uniquement les variables d'environnement Vercel.
 
 ### 2. Configuration Supabase Authentication
 
