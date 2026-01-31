@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // PATCH /api/projects/[id]/phase - Update project phase
 export async function PATCH(request, { params }) {
@@ -55,12 +56,15 @@ export async function PATCH(request, { params }) {
             AOR: 'AOR - Assistance Operations Reception',
         };
 
+        // Ensure user exists in database before creating activity log
+        const actualUserId = await ensureUserInDatabase(user);
+
         await prisma.activityLog.create({
             data: {
                 projectId,
                 type: 'PHASE_CHANGED',
                 description: `Phase changée: ${phaseLabels[currentProject.phase]} → ${phaseLabels[phase]}`,
-                userId: user.id,
+                userId: actualUserId,
             },
         });
 
