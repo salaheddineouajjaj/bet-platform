@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, requirePermission } from '@/lib/auth';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // GET /api/meetings?projectId=xxx
 export async function GET(request) {
@@ -44,6 +45,9 @@ export async function POST(request) {
         const user = await requirePermission(request, 'CREATE_MEETING');
         const body = await request.json();
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         const meeting = await prisma.meeting.create({
             data: {
                 projectId: body.projectId,
@@ -51,7 +55,7 @@ export async function POST(request) {
                 date: new Date(body.date),
                 participants: body.participants,
                 crContent: body.crContent,
-                organizerId: user.id,
+                organizerId: actualUserId,
             },
         });
 

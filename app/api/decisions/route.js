@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, requirePermission } from '@/lib/auth';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // GET /api/decisions?projectId=xxx
 export async function GET(request) {
@@ -36,6 +37,9 @@ export async function POST(request) {
         const user = await requirePermission(request, 'CREATE_DECISION');
         const body = await request.json();
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         const decision = await prisma.decision.create({
             data: {
                 projectId: body.projectId,
@@ -44,7 +48,7 @@ export async function POST(request) {
                 description: body.description,
                 impact: body.impact,
                 isValidated: false,
-                decidedById: user.id,
+                decidedById: actualUserId,
             },
         });
 

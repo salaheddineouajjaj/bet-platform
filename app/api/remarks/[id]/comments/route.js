@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth } from '@/lib/auth';
 import { createRemarkCommentSchema } from '@/lib/validation';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // POST /api/remarks/[id]/comments - Add comment to remark
 export async function POST(request, { params }) {
@@ -16,12 +17,15 @@ export async function POST(request, { params }) {
             remarkId: id,
         });
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         // Create comment
         const comment = await prisma.remarkComment.create({
             data: {
                 remarkId: id,
                 content: validated.content,
-                authorId: user.id,
+                authorId: actualUserId,
             },
             include: {
                 author: {
