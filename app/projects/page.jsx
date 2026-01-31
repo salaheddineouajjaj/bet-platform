@@ -32,9 +32,14 @@ export default function ProjectsPage() {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
+            console.log('[PROJECTS] Fetching with token:', token ? 'Present' : 'Missing');
+
             const response = await fetch('/api/projects', {
+                method: 'GET',
+                credentials: 'include', // Send cookies
                 headers: {
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
             const data = await response.json();
