@@ -78,6 +78,14 @@ export async function POST(request) {
                 responsable: {
                     select: { name: true, email: true },
                 },
+                comments: {
+                    include: {
+                        author: {
+                            select: { name: true, email: true },
+                        },
+                    },
+                    orderBy: { createdAt: 'asc' },
+                },
             },
         });
 
