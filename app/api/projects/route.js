@@ -5,7 +5,17 @@ import { requireAuth, requirePermission } from '@/lib/auth';
 // GET /api/projects - List all projects
 export async function GET(request) {
     try {
+        console.log('[PROJECTS API] Incoming request...');
         const user = await requireAuth(request);
+        console.log('[PROJECTS API] User authenticated:', user ? user.email : 'NO USER');
+
+        if (!user) {
+            console.error('[PROJECTS API] ❌ No user returned from requireAuth');
+            return NextResponse.json(
+                { error: 'Unauthorized - No user found' },
+                { status: 401 }
+            );
+        }
 
         // Filter projects based on user role and assignments
         let whereClause = {};
