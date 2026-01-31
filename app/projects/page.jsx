@@ -13,6 +13,7 @@ import styles from './projects.module.css';
 export default function ProjectsPage() {
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [showNewModal, setShowNewModal] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null); // Project to delete
     const [deleting, setDeleting] = useState(false);
@@ -44,15 +45,24 @@ export default function ProjectsPage() {
             });
             const data = await response.json();
 
+            console.log('[PROJECTS] Response status:', response.status);
+            console.log('[PROJECTS] Response data:', data);
+
             if (!response.ok) {
                 console.error('[PROJECTS] API Error:', data);
-                throw new Error(data.error || 'Erreur de chargement');
+                const errorMsg = `API Error ${response.status}: ${data.error || 'Unknown error'}`;
+                setError(errorMsg);
+                throw new Error(errorMsg);
             }
 
+            console.log('[PROJECTS] Successfully loaded:', data.projects?.length, 'projects');
             setProjects(data.projects || []);
+            setError(null); // Clear any previous errors
         } catch (error) {
             console.error('[PROJECTS] Fetch error:', error);
+            console.error('[PROJECTS] Error details:', error.message, error.stack);
             setProjects([]);
+            setError(error.message || 'Failed to load projects');
         } finally {
             setLoading(false);
         }
@@ -163,6 +173,29 @@ export default function ProjectsPage() {
             </div>
 
             <div className="container">
+                {error && (
+                    <div style={{
+                        backgroundColor: 'var(--color-error-bg, #ff000020)',
+                        border: '2px solid var(--color-error, #ff0000)',
+                        borderRadius: '8px',
+                        padding: '1.5rem',
+                        marginBottom: '2rem',
+                        textAlign: 'center'
+                    }}>
+                        <h3 style={{ color: 'var(--color-error, #ff0000)', marginBottom: '0.5rem' }}>
+                            ⚠️ Error Loading Projects
+                        </h3>
+                        <p style={{ color: 'var(--color-text-primary)' }}>{error}</p>
+                        <button
+                            onClick={fetchProjects}
+                            className="btn btn-primary"
+                            style={{ marginTop: '1rem' }}
+                        >
+                            🔄 Retry
+                        </button>
+                    </div>
+                )}
+
                 {loading ? (
                     <div style={{ textAlign: 'center', padding: '4rem' }}>
                         <p>Chargement des projets...</p>
