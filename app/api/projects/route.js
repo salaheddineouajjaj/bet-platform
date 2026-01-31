@@ -87,7 +87,7 @@ export async function POST(request) {
         }
 
         // Ensure user exists in database (handle fallback user case)
-        const actualUserId = await ensureUserInDatabase(user);
+        const actualUserIdForProjectCreation = await ensureUserInDatabase(user);
 
         // Create project and automatically assign creator
         const project = await prisma.project.create({
@@ -101,10 +101,10 @@ export async function POST(request) {
                 phase: body.phase,
                 startDate: body.startDate ? new Date(body.startDate) : null,
                 endDate: body.endDate ? new Date(body.endDate) : null,
-                createdById: actualUserId,
+                createdById: actualUserIdForProjectCreation,
                 // Auto-assign creator to project
                 assignedUsers: {
-                    connect: { id: actualUserId },
+                    connect: { id: actualUserIdForProjectCreation },
                 },
             },
             include: {
@@ -130,12 +130,13 @@ export async function POST(request) {
 
         // Log activity
         try {
+            const actualUserId = await ensureUserInDatabase(user);
             await prisma.activityLog.create({
                 data: {
                     projectId: project.id,
                     type: 'PROJECT_CREATED',
                     description: `Projet "${project.name}" créé`,
-                    userId: user.id,
+                    userId: actualUserId,
                 },
             });
         } catch (logError) {

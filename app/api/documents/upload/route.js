@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { createClient } from '@supabase/supabase-js';
 import prisma from '@/lib/prisma';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // Initialize Supabase client with service role for storage
 const supabaseAdmin = createClient(
@@ -59,6 +60,9 @@ export async function POST(request) {
 
         console.log('File uploaded, public URL:', publicUrl);
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         // Save document metadata to database
         const document = await prisma.document.create({
             data: {
@@ -68,7 +72,7 @@ export async function POST(request) {
                 filename: file.name,
                 version,
                 storageUrl: publicUrl,
-                uploadedById: user.id,
+                uploadedById: actualUserId,
             },
             include: {
                 uploadedBy: {

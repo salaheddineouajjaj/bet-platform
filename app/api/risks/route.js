@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, requirePermission } from '@/lib/auth';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // GET /api/risks?projectId=xxx
 export async function GET(request) {
@@ -39,6 +40,9 @@ export async function POST(request) {
         const user = await requirePermission(request, 'CREATE_RISK');
         const body = await request.json();
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         const risk = await prisma.risk.create({
             data: {
                 projectId: body.projectId,
@@ -48,8 +52,8 @@ export async function POST(request) {
                 impactValue: body.impactValue,
                 mitigation: body.mitigation,
                 status: 'OPEN',
-                createdById: user.id,
-                responsableId: user.id,
+                createdById: actualUserId,
+                responsableId: actualUserId,
             },
         });
 

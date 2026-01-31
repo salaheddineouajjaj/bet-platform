@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, requirePermission } from '@/lib/auth';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // GET /api/deliverables?projectId=xxx
 export async function GET(request) {
@@ -58,6 +59,9 @@ export async function POST(request) {
             );
         }
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         // Create deliverable
         const deliverable = await prisma.deliverable.create({
             data: {
@@ -68,7 +72,7 @@ export async function POST(request) {
                 responsable: body.responsable,
                 dueDate: new Date(body.dueDate),
                 status: body.status || 'A_FAIRE',
-                createdById: user.id,
+                createdById: actualUserId,
             },
             include: {
                 createdBy: {

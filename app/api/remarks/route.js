@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, requirePermission } from '@/lib/auth';
+import { ensureUserInDatabase } from '@/lib/userHelpers';
 
 // GET /api/remarks?projectId=xxx
 export async function GET(request) {
@@ -56,6 +57,9 @@ export async function POST(request) {
 
         console.log('Creating remark with data:', body);
 
+        // Ensure user exists in database
+        const actualUserId = await ensureUserInDatabase(user);
+
         const remark = await prisma.remark.create({
             data: {
                 projectId: body.projectId,
@@ -63,8 +67,8 @@ export async function POST(request) {
                 description: body.description,
                 priority: body.priority || 'MOYENNE',
                 status: 'OUVERT',
-                responsableId: user.id,
-                createdById: user.id,
+                responsableId: actualUserId,
+                createdById: actualUserId,
                 deadline: body.deadline ? new Date(body.deadline) : null,
             },
             include: {
