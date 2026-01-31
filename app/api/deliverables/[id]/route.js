@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { requireAuth, hasPermission, canEditLot } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
+import { hasPermission } from '@/lib/permissions';
 import { updateDeliverableSchema } from '@/lib/validation';
 
 // GET /api/deliverables/[id] - Get deliverable details
@@ -60,8 +61,11 @@ export async function PUT(request, { params }) {
             );
         }
 
-        // Check permissions
-        if (!canEditLot(user, currentDeliverable.lot)) {
+        // Check permissions - Chef de projet can edit all, others only their lot
+        const canEdit = user.role === 'CHEF_DE_PROJET' ||
+            (user.lot && user.lot === currentDeliverable.lot);
+
+        if (!canEdit) {
             return NextResponse.json(
                 { error: 'Accès non autorisé à ce lot' },
                 { status: 403 }
@@ -73,7 +77,7 @@ export async function PUT(request, { params }) {
 
         // Check if status change requires validation permission
         if (validated.status && ['VALIDE', 'REJETE'].includes(validated.status)) {
-            if (!hasPermission(user, 'VALIDATE_DELIVERABLE')) {
+            if (!hasPermission(user.role, 'VALIDATE_DELIVERABLE')) {
                 return NextResponse.json(
                     { error: 'Vous n\'avez pas la permission de valider des livrables' },
                     { status: 403 }
