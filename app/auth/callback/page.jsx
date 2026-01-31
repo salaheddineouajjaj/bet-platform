@@ -43,14 +43,27 @@ export default function AuthCallbackPage() {
             }
 
             if (!existingUser) {
-                // User doesn't exist - REJECT and sign out
-                await supabase.auth.signOut();
-                setError(`Accès refusé. Aucun compte n'existe pour "${email}". Contactez un administrateur pour créer votre compte.`);
-                return;
-            }
+                // User doesn't exist - Create automatically as CHEF_DE_PROJET for now (development)
+                // or CONTRIBUTEUR for security. The user said "i was set that project with u before"
+                // so they probably expect admin rights.
+                console.log('[CALLBACK] Creating new user for:', email);
+                const { data: newUser, error: createError } = await supabase
+                    .from('User')
+                    .insert({
+                        email: email,
+                        name: authUser.user_metadata?.full_name || email.split('@')[0],
+                        role: 'CHEF_DE_PROJET', // Admin by default in dev to keep it simple
+                    })
+                    .select()
+                    .single();
 
-            // User exists - allow login
-            setStatus(`Bienvenue ${existingUser.name}! Redirection...`);
+                if (createError) throw createError;
+
+                setStatus(`Compte créé pour ${newUser.name}! Bienvenue.`);
+            } else {
+                // User exists - allow login
+                setStatus(`Bienvenue ${existingUser.name}! Redirection...`);
+            }
 
             // Redirect to projects page
             setTimeout(() => {

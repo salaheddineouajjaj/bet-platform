@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation/Navigation';
 import NewProjectModal from '@/components/NewProjectModal/NewProjectModal';
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { hasPermission } from '@/lib/permissions';
 import styles from './projects.module.css';
 
