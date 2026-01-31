@@ -85,6 +85,33 @@ export async function POST(request) {
             );
         }
 
+        // Ensure user exists in database (handle fallback user case)
+        let actualUserId = user.id;
+
+        if (user.id === 'fallback-id') {
+            console.log('[PROJECTS] Fallback user detected, finding/creating actual user...');
+
+            // Try to find user by email
+            let dbUser = await prisma.user.findUnique({
+                where: { email: user.email }
+            });
+
+            // If user doesn't exist, create them
+            if (!dbUser) {
+                console.log('[PROJECTS] Creating user in database:', user.email);
+                dbUser = await prisma.user.create({
+                    data: {
+                        email: user.email,
+                        name: user.name,
+                        role: user.role,
+                    }
+                });
+            }
+
+            actualUserId = dbUser.id;
+            console.log('[PROJECTS] Using actual user ID:', actualUserId);
+        }
+
         // Create project and automatically assign creator
         const project = await prisma.project.create({
             data: {
@@ -97,10 +124,10 @@ export async function POST(request) {
                 phase: body.phase,
                 startDate: body.startDate ? new Date(body.startDate) : null,
                 endDate: body.endDate ? new Date(body.endDate) : null,
-                createdById: user.id,
+                createdById: actualUserId,
                 // Auto-assign creator to project
                 assignedUsers: {
-                    connect: { id: user.id },
+                    connect: { id: actualUserId },
                 },
             },
             include: {
